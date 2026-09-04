@@ -4,12 +4,15 @@ A turn-based "run the UK" game built on a system-dynamics model: stocks, flows a
 for the economy, society, institutions, environment and politics. You are Prime Minister from
 Q1 2026. Each turn is a quarter. Win the elections of 2029, 2034, 2039 and 2044 to win.
 
+Play it: **https://therestispolitics.olliejgooding.workers.dev**
+
 ```bash
 npm install
 npm run dev        # play at http://localhost:5173
 npm test           # vitest sanity/calibration tests
 npm run sim -- steward 30 energy-war   # headless run: strategy (passive|steward|reckless|random), seeds, scenario
-npm run build      # static site in dist/ (deploy anywhere)
+npm run build      # static site in dist/
+npm run deploy     # build + wrangler deploy to Cloudflare Workers (static assets)
 ```
 
 ## Layout
