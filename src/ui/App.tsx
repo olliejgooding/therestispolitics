@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CardView } from './Cards';
 import { ChartsView } from './Charts';
 import { EndScreen } from './EndScreen';
+import { Coach } from './Coach';
 import { LearnView } from './Learn';
 import { NewGameScreen } from './NewGame';
 import { OppositionPanel } from './Opposition';
@@ -16,7 +17,7 @@ type Tab = 'decisions' | 'people' | 'charts' | 'systems' | 'learn';
 const ELECTION_YEARS = [2029, 2034, 2039, 2044];
 
 export function App() {
-  const { game, setLevers, choose, endTurn, newGame, abandon } = useGame();
+  const { game, setLevers, choose, endTurn, newGame, abandon, tutorialNext, tutorialSkip } = useGame();
   const [tab, setTab] = useState<Tab>('decisions');
   const [entry, setEntry] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -24,7 +25,7 @@ export function App() {
     setEntry(id);
     setTab('learn');
   };
-  if (!game) return <NewGameScreen onStart={(sc) => newGame(sc)} />;
+  if (!game) return <NewGameScreen onStart={(sc, tut) => newGame(sc, tut)} />;
   const s = game.state;
   const nextElection = ELECTION_YEARS.find((y) => y > s.year || (y === s.year && s.quarter < 2));
   const quartersToGo = nextElection ? (nextElection - s.year) * 4 + (2 - s.quarter) : 0;
@@ -43,7 +44,7 @@ export function App() {
         <div className="stat"><span className="muted">Party unity</span><b className={s.partyUnity < 40 ? 'bad' : ''}>{s.partyUnity.toFixed(0)}</b></div>
         <div className="stat"><span className="muted">Unrest</span><b className={s.unrest > 60 ? 'bad' : ''}>{s.unrest.toFixed(0)}</b></div>
         <div className="spacer" />
-        <nav className="tabs">
+        <nav className="tabs" data-tour="tabs">
           {(['decisions', 'people', 'charts', 'systems', 'learn'] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
@@ -54,8 +55,8 @@ export function App() {
       </header>
 
       <div className="main">
-        <div className="col">
-          <OppositionPanel state={s} onLearn={openEntry} />
+        <div className="col" data-tour="dashboard">
+          <div data-tour="opposition"><OppositionPanel state={s} onLearn={openEntry} /></div>
           <Dashboard history={game.history} onLearn={openEntry} />
         </div>
 
@@ -63,7 +64,7 @@ export function App() {
           {tab === 'decisions' && (
             <>
               {lastLog && (
-                <div className="panel">
+                <div className="panel" data-tour="headlines">
                   <h3>This quarter's news</h3>
                   <div className="headlines">
                     {lastLog.headlines.map((h, i) => (
@@ -82,12 +83,12 @@ export function App() {
                   <p className="muted" style={{ margin: '8px 0 0', fontSize: 13 }}>Lesson of this scenario: {game.scenario.lesson}</p>
                 </div>
               )}
-              <div className="cards">
+              <div className="cards" data-tour="cards">
                 {game.pending.map((d) => (
                   <CardView key={d.card.id} dealt={d} onChoose={(i) => choose(d.card.id, i)} onLearn={openEntry} />
                 ))}
               </div>
-              <div className="endturn">
+              <div className="endturn" data-tour="endturn">
                 <button className="btn" disabled={!game.canEndTurn} onClick={endTurn}>
                   End quarter →
                 </button>
@@ -101,13 +102,16 @@ export function App() {
           {tab === 'learn' && <LearnView history={game.history} entryId={entry} onOpen={setEntry} />}
         </div>
 
-        <div className="col">
+        <div className="col" data-tour="levers">
           <LeverPanel state={s} onChange={setLevers} />
         </div>
       </div>
 
       <EndScreen game={game} onNewGame={() => { abandon(); }} />
-      {picking && <NewGameScreen onStart={(sc) => { setPicking(false); newGame(sc); }} onCancel={() => setPicking(false)} />}
+      {picking && <NewGameScreen onStart={(sc, tut) => { setPicking(false); newGame(sc, tut); }} onCancel={() => setPicking(false)} />}
+      {game.tutorial.enabled && game.status.kind === 'playing' && (
+        <Coach game={game} step={game.tutorial.step} onNext={tutorialNext} onSkip={tutorialSkip} onLearn={openEntry} onTab={setTab} />
+      )}
     </div>
   );
 }

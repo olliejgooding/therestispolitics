@@ -44,9 +44,19 @@ export function useGame() {
         game.endTurn();
         bump();
       },
-      newGame: (scenario = 'standard', seed?: number) => {
+      newGame: (scenario = 'standard', tutorial = false, seed?: number) => {
         localStorage.removeItem(KEY);
-        setGame(new Game(seed ?? Date.now() % 100000, scenario));
+        setGame(new Game(seed ?? Date.now() % 100000, scenario, tutorial));
+      },
+      tutorialNext: () => {
+        if (!game) return;
+        game.tutorial = { ...game.tutorial, step: game.tutorial.step + 1 };
+        bump();
+      },
+      tutorialSkip: () => {
+        if (!game) return;
+        game.tutorial = { enabled: false, step: 0 };
+        bump();
       },
       abandon: () => {
         localStorage.removeItem(KEY);

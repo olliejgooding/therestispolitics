@@ -17,6 +17,8 @@ npm run build      # static site in dist/ (deploy anywhere)
 | Path | What |
 |---|---|
 | `docs/DESIGN.md` | The systems design: every stock, flow, loop and equation. Start here. |
+| `docs/LLM.md` | Where an LLM adds narrative, advisers, free-text policy and generated content, and the architecture to do it safely. |
+| `src/edu/tutorial.ts` | The guided tutorial steps. |
 | `src/sim/types.ts` | State shape, levers, voter blocs. |
 | `src/sim/initial.ts` | UK in Q1 2026. |
 | `src/sim/model.ts` | One quarter of economy / society / institutions / environment. Pure function. |
@@ -33,7 +35,9 @@ Python backend for heavier calibration work.
 
 ## Learning how to win
 
-Every `?` in the UI opens the encyclopedia entry for that metric, card or loop. The **Learn** tab
+Tick **Guided tutorial** on the new-game screen for a 12-step coach through the first term: it
+waits for the right moment (first headlines, the NHS drifting, election year) and spotlights the
+relevant panel with a link to the encyclopedia. Every `?` in the UI opens the encyclopedia entry for that metric, card or loop. The **Learn** tab
 also has a *Why is it like this?* tool that decomposes happiness, each bloc's approval and the
 opposition's appeal into their contributing terms. Scenarios each state the lesson they teach.
 

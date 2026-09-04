@@ -36,9 +36,11 @@ export class Game {
   private used: Set<string> = new Set();
   private rng: Rng;
   scenario: Scenario;
+  tutorial: { enabled: boolean; step: number } = { enabled: false, step: 0 };
 
-  constructor(seed = 2026, scenarioId = 'standard') {
+  constructor(seed = 2026, scenarioId = 'standard', tutorial = false) {
     this.scenario = scenarioById(scenarioId);
+    this.tutorial = { enabled: tutorial, step: 0 };
     const s = initialState(seed);
     s.scenario = this.scenario.id;
     s.levers = { ...s.levers };
@@ -174,6 +176,7 @@ export class Game {
       used: [...this.used],
       rng: this.rng.seed,
       scenario: this.scenario.id,
+      tutorial: this.tutorial,
     };
   }
 
@@ -188,6 +191,7 @@ export class Game {
     g.lastDealt = j.lastDealt;
     g.used = new Set(j.used);
     g.rng = Rng.fromState(j.rng);
+    g.tutorial = j.tutorial ?? { enabled: false, step: 0 };
     return g;
   }
 }

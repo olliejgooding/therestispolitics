@@ -195,3 +195,12 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; }
 .diff.normal { color: var(--good); }
 .diff.hard { color: var(--warn); }
 .diff.brutal { color: var(--bad); }
+
+/* tutorial */
+.spotlight { outline: 2px solid var(--warn); outline-offset: 2px; border-radius: 10px; box-shadow: 0 0 0 4px rgba(255,179,71,0.15); }
+.coach { position: fixed; right: 18px; bottom: 18px; width: 340px; background: var(--panel); border: 1px solid var(--warn); border-radius: 12px; padding: 14px 16px; z-index: 9; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.coach-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+.coach h4 { font-size: 15px; margin-bottom: 6px; }
+.coach p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: #c5cad6; }
+.coach-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.coach-actions .btn { padding: 6px 12px; font-size: 13px; }

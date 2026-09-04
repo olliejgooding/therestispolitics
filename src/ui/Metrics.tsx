@@ -91,6 +91,8 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
+const TOUR_KEYS: Record<string, string> = { nhsQuality: 'metric-nhs', inflation: 'metric-inflation', deficit: 'metric-deficit', nationalApproval: 'metric-approval' };
+
 export function Metric({ def, history, onLearn }: { def: MetricDef; history: State[]; onLearn?: (id: string) => void }) {
   const s = history[history.length - 1];
   const prev = history[history.length - 2] ?? s;
@@ -99,7 +101,7 @@ export function Metric({ def, history, onLearn }: { def: MetricDef; history: Sta
   const tone = def.dir === 0 || Math.abs(d) < 1e-6 ? 'muted' : Math.sign(d) === def.dir ? 'good' : 'bad';
   const recent = history.slice(-16).map(def.get);
   return (
-    <div className="metric" title={def.help}>
+    <div className="metric" title={def.help} data-tour={TOUR_KEYS[def.key]}>
       <div className="label">
         {def.label}
         {def.learn && onLearn && (

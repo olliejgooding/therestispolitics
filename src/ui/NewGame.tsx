@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { entryById } from '../edu/entries';
 import { SCENARIOS } from '../sim/scenarios';
 
-export function NewGameScreen({ onStart, onCancel }: { onStart: (scenario: string) => void; onCancel?: () => void }) {
+export function NewGameScreen({ onStart, onCancel }: { onStart: (scenario: string, tutorial: boolean) => void; onCancel?: () => void }) {
   const [sel, setSel] = useState('standard');
+  const [tutorial, setTutorial] = useState(true);
   const sc = SCENARIOS.find((s) => s.id === sel)!;
   return (
     <div className="overlay">
@@ -26,9 +27,13 @@ export function NewGameScreen({ onStart, onCancel }: { onStart: (scenario: strin
             Related reading: {sc.learn.map((l) => entryById(l)?.title).filter(Boolean).join(' · ')}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <label style={{ marginRight: 'auto', fontSize: 13, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+            <input type="checkbox" checked={tutorial} onChange={(e) => setTutorial(e.target.checked)} />
+            Guided tutorial through the first term
+          </label>
           {onCancel && <button className="btn secondary" onClick={onCancel}>Cancel</button>}
-          <button className="btn" onClick={() => onStart(sel)}>Start as Prime Minister →</button>
+          <button className="btn" onClick={() => onStart(sel, tutorial)}>Start as Prime Minister →</button>
         </div>
       </div>
     </div>
