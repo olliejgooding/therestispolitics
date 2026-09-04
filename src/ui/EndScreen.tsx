@@ -21,7 +21,7 @@ export function EndScreen({ game, onNewGame }: { game: Game; onNewGame: () => vo
   ];
   return (
     <div className="overlay">
-      <div className="end">
+      <div className="end" style={{ maxHeight: '92vh', overflowY: 'auto' }}>
         <div className={won ? 'good' : 'bad'} style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>{won ? 'Victory' : 'Game over'}</div>
         <h1>{title}</h1>
         <p className="muted" style={{ margin: 0 }}>
@@ -40,6 +40,15 @@ export function EndScreen({ game, onNewGame }: { game: Game; onNewGame: () => vo
             ))}
           </tbody>
         </table>
+        {game.historyBook && (
+          <div className="history-book">
+            <div className="muted" style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>From the history books, 2060</div>
+            <h3 style={{ fontSize: 16, margin: '4px 0 8px', textTransform: 'none', letterSpacing: 0, color: 'var(--text)' }}>{game.historyBook.title}</h3>
+            {game.historyBook.text.split(/\n\s*\n/).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        )}
         <button className="btn" onClick={onNewGame}>Start again</button>
       </div>
     </div>

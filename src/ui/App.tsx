@@ -6,6 +6,7 @@ import { Coach } from './Coach';
 import { LearnView } from './Learn';
 import { NewGameScreen } from './NewGame';
 import { OppositionPanel } from './Opposition';
+import { PapersView } from './Papers';
 import { LeverPanel } from './Levers';
 import { Dashboard } from './Metrics';
 import { PopulationView } from './Population';
@@ -17,7 +18,7 @@ type Tab = 'decisions' | 'people' | 'charts' | 'systems' | 'learn';
 const ELECTION_YEARS = [2029, 2034, 2039, 2044];
 
 export function App() {
-  const { game, setLevers, choose, endTurn, newGame, abandon, tutorialNext, tutorialSkip } = useGame();
+  const { game, setLevers, choose, endTurn, newGame, abandon, tutorialNext, tutorialSkip, papersLoading } = useGame();
   const [tab, setTab] = useState<Tab>('decisions');
   const [entry, setEntry] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -73,6 +74,7 @@ export function App() {
                   </div>
                 </div>
               )}
+              {lastLog && <PapersView papers={lastLog.papers} loading={papersLoading} />}
               {!lastLog && (
                 <div className="panel">
                   <h3>Welcome, Prime Minister</h3>
@@ -96,7 +98,7 @@ export function App() {
               </div>
             </>
           )}
-          {tab === 'people' && <PopulationView state={s} />}
+          {tab === 'people' && <PopulationView game={game} />}
           {tab === 'charts' && <ChartsView history={game.history} />}
           {tab === 'systems' && <SystemsMap onLearn={openEntry} />}
           {tab === 'learn' && <LearnView history={game.history} entryId={entry} onOpen={setEntry} />}

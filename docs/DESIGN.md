@@ -234,6 +234,13 @@ partyUnity   += ( (nationalApproval - 40)*k - friction ) * dt
 unrest       += ( inflow(inflation, unemployment, cohesion, trust, austerity cuts) - outflow(policing, decay) ) * dt
 fatigue      += 0.4/yr while in office; partly reset by a fresh mandate
 ```
+### 3.14a The fairness issue
+Beyond the sixteen issue scores in 3.14 there is `fairness`: progressivity above 50, corporation
+tax above 25 and a falling Gini all score positively for most blocs (workers, young, public
+sector most; pensioners least), the mirror image of `businessClimate`. It captures the 2026
+mood that the wealthy should pay to fix services, and gives the player a real choice between
+the business bloc and everyone else.
+
 ### 3.15 The opposition
 The opposition is an agent with a platform on four axes (tax & spend, migration, climate,
 law & order), a leader, and a credibility stock. Each bloc has an ideal point on the axes; the
@@ -307,7 +314,10 @@ are discrete political acts.
 ## 8. Roadmap
 
 v0.1: core loop, 6 blocs, ~30 cards, population mosaic, charts, headless harness.
-v0.2 (this build): adaptive opposition, 6 scenarios, 43 cards, encyclopedia with live figures and
-decomposition tools. Later: a real Parliament with rebels and votes, devolved nations, trade
+v0.2: adaptive opposition, 6 scenarios, 43 cards, encyclopedia with live figures and
+decomposition tools.
+v0.3 (this build): realistic 2026 calibration with a populist opposition and the fairness issue,
+guided tutorial, Simple/Full dashboard, Cloudflare Worker with the LLM narration layer (papers,
+vox pops, history book). See ROADMAP.md for tiers and rules for further systems. Later: a real Parliament with rebels and votes, devolved nations, trade
 deals, a Python calibration notebook against ONS/OBR series, guided tutorials per scenario, and
 multiplayer "cabinet" mode.

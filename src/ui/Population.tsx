@@ -1,4 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { voxContext } from '../llm/context';
+import { llm } from '../llm/provider';
+import type { VoxPop } from '../llm/schemas';
+import type { Game } from '../sim/game';
 import { BLOC_INFO, BLOCS, type BlocId, type State } from '../sim/types';
 
 const N = 240; // citizens in the mosaic
@@ -38,13 +42,13 @@ function moodColor(m: number) {
   return `rgb(${r},${g},90)`;
 }
 
-function Person({ mood, status, title }: { mood: number; status: 'ok' | 'unemployed' | 'protest' | 'struggling'; title: string }) {
+function Person({ mood, status, title, onClick, selected }: { mood: number; status: 'ok' | 'unemployed' | 'protest' | 'struggling'; title: string; onClick?: () => void; selected?: boolean }) {
   const col = status === 'unemployed' ? '#6b7280' : moodColor(mood);
   const smile = (mood - 50) / 50; // -1..1
   const y = 13 + smile * 1.6;
   const path = `M 6 ${y} Q 10 ${13 + smile * 4} 14 ${y}`;
   return (
-    <svg className="citizen" viewBox="0 0 20 20">
+    <svg className={`citizen ${onClick ? 'clickable' : ''} ${selected ? 'selected' : ''}`} viewBox="0 0 20 20" onClick={onClick}>
       <title>{title}</title>
       <circle cx="10" cy="9" r="7" fill={col} />
       <circle cx="7.5" cy="7.5" r="1" fill="#1a1a1a" />
@@ -56,8 +60,22 @@ function Person({ mood, status, title }: { mood: number; status: 'ok' | 'unemplo
   );
 }
 
-export function PopulationView({ state }: { state: State }) {
+const STATUS_TEXT = { ok: 'getting by', unemployed: 'out of work', protest: 'has been on the protests', struggling: 'priced out of housing' };
+
+export function PopulationView({ game }: { game: Game }) {
+  const state = game.state;
   const citizens = useMemo(buildCitizens, []);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [vox, setVox] = useState<{ idx: number; pop: VoxPop | null; loading: boolean } | null>(null);
+  const [llmUp, setLlmUp] = useState(false);
+  useEffect(() => {
+    llm.available().then(setLlmUp);
+  }, []);
+  const ask = (idx: number, bloc: BlocId, mood: number, status: keyof typeof STATUS_TEXT) => {
+    setSelected(idx);
+    setVox({ idx, pop: null, loading: true });
+    llm.voxPop(voxContext(game, bloc, mood, STATUS_TEXT[status])).then((pop) => setVox((v) => (v && v.idx === idx ? { idx, pop, loading: false } : v)));
+  };
   const unempFrac = state.unemployment / 100;
   const protestFrac = state.unrest / 100;
   const housingFrac = Math.max(0, (state.housePriceToIncome - 6) / 10);
@@ -71,9 +89,31 @@ export function PopulationView({ state }: { state: State }) {
           if (c.r2 < unempFrac * (c.bloc === 'pensioners' ? 0.2 : 1.3)) status = 'unemployed';
           else if (mood < 40 && c.r2 < protestFrac + 0.02) status = 'protest';
           else if (c.bloc === 'young' && c.r2 < housingFrac) status = 'struggling';
-          return <Person key={i} mood={mood} status={status} title={`${BLOC_INFO[c.bloc].name}: ${status === 'ok' ? 'mood ' + mood.toFixed(0) : status}`} />;
+          return (
+            <Person
+              key={i}
+              mood={mood}
+              status={status}
+              selected={selected === i}
+              title={`${BLOC_INFO[c.bloc].name}: ${status === 'ok' ? 'mood ' + mood.toFixed(0) : status}${llmUp ? ' — click to hear from them' : ''}`}
+              onClick={llmUp ? () => ask(i, c.bloc, mood, status) : undefined}
+            />
+          );
         })}
       </div>
+      {vox && (
+        <div className="voxpop">
+          {vox.loading && <span className="muted">Finding someone to talk to…</span>}
+          {!vox.loading && !vox.pop && <span className="muted">Nobody wanted to talk.</span>}
+          {vox.pop && (
+            <>
+              <div className="vox-who">{vox.pop.name}, {vox.pop.age}, {vox.pop.job}, {vox.pop.place}</div>
+              <div className="vox-quote">“{vox.pop.quote}”</div>
+            </>
+          )}
+        </div>
+      )}
+      {llmUp && !vox && <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Click a person to hear what they think.</div>}
       <div className="legend">
         <span><i style={{ background: moodColor(75) }} />content</span>
         <span><i style={{ background: moodColor(50) }} />neutral</span>

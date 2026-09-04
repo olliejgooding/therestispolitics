@@ -7,6 +7,7 @@ import { stepEconomy } from './model';
 import { isElectionTurn, runElection, stepPolitics } from './politics';
 import { Rng } from './rng';
 import { scenarioById, type Scenario } from './scenarios';
+import type { HistoryBook, Papers } from '../llm/schemas';
 import type { ElectionResult, GameStatus, Headline, Levers, State } from './types';
 
 export interface DealtCard {
@@ -20,6 +21,7 @@ export interface TurnLog {
   quarter: number;
   headlines: Headline[];
   decisions: { card: string; option: string }[];
+  papers?: Papers | null;
 }
 
 const TIMER_FLAGS = new Set(['giltStrike', 'safeFromCoup']);
@@ -37,6 +39,7 @@ export class Game {
   private rng: Rng;
   scenario: Scenario;
   tutorial: { enabled: boolean; step: number } = { enabled: false, step: 0 };
+  historyBook: HistoryBook | null = null;
 
   constructor(seed = 2026, scenarioId = 'standard', tutorial = false) {
     this.scenario = scenarioById(scenarioId);
@@ -177,6 +180,7 @@ export class Game {
       rng: this.rng.seed,
       scenario: this.scenario.id,
       tutorial: this.tutorial,
+      historyBook: this.historyBook,
     };
   }
 
@@ -192,6 +196,7 @@ export class Game {
     g.used = new Set(j.used);
     g.rng = Rng.fromState(j.rng);
     g.tutorial = j.tutorial ?? { enabled: false, step: 0 };
+    g.historyBook = j.historyBook ?? null;
     return g;
   }
 }

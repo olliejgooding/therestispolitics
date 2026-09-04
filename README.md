@@ -11,9 +11,28 @@ npm install
 npm run dev        # play at http://localhost:5173
 npm test           # vitest sanity/calibration tests
 npm run sim -- steward 30 energy-war   # headless run: strategy (passive|steward|reckless|random), seeds, scenario
-npm run build      # static site in dist/
-npm run deploy     # build + wrangler deploy to Cloudflare Workers (static assets)
+npm run build      # type-checks app + worker, builds dist/
+npm run worker     # local Worker on :8787 (the dev server proxies /api to it)
+npm run deploy     # build + wrangler deploy to Cloudflare Workers
 ```
+
+## The LLM layer
+
+The Worker in `worker/index.ts` serves the static game and proxies `POST /api/llm` to an
+OpenAI-compatible Responses API (Azure). It adds the morning papers after every quarter, vox pops
+when you click a citizen, and a history-book chapter at game over. None of it touches the
+simulation: every response is validated against a JSON schema, size-capped, retried once,
+cached by content hash, and if the key is missing the game runs exactly as before.
+
+Setup, once:
+
+```bash
+npx wrangler secret put AZURE_OPENAI_KEY      # production; paste the key at the prompt
+echo AZURE_OPENAI_KEY=... > .dev.vars         # local `npm run worker` (gitignored)
+```
+
+Endpoint and deployment name live in `wrangler.jsonc` under `vars`. `GET /api/health` reports
+whether the key is configured. Set `VITE_LLM=off` at build time to disable the client entirely.
 
 ## Layout
 
@@ -21,6 +40,9 @@ npm run deploy     # build + wrangler deploy to Cloudflare Workers (static asset
 |---|---|
 | `docs/DESIGN.md` | The systems design: every stock, flow, loop and equation. Start here. |
 | `docs/LLM.md` | Where an LLM adds narrative, advisers, free-text policy and generated content, and the architecture to do it safely. |
+| `docs/ROADMAP.md` | The rules and tiers for adding complexity without making the game unplayable. |
+| `worker/index.ts` | Cloudflare Worker: static assets + the `/api/llm` proxy with validation and caching. |
+| `src/llm/` | Client provider, context builders (deltas and decompositions, never raw state), shared schemas. |
 | `src/edu/tutorial.ts` | The guided tutorial steps. |
 | `src/sim/types.ts` | State shape, levers, voter blocs. |
 | `src/sim/initial.ts` | UK in Q1 2026. |
@@ -44,13 +66,24 @@ relevant panel with a link to the encyclopedia. Every `?` in the UI opens the en
 also has a *Why is it like this?* tool that decomposes happiness, each bloc's approval and the
 opposition's appeal into their contributing terms. Scenarios each state the lesson they teach.
 
-## Balance (v0.2, 20 seeds each)
+## The starting position
+
+"Britain, 2026" is calibrated to where the country actually is: growth around 1%, inflation 3.4%,
+unemployment 4.9%, a 4–5% deficit with debt at 96% of GDP and rising, taxes at a post-war high,
+record NHS waiting lists, net migration down to ~250k after visa tightening but immigration the
+top public concern, cohesion and integration below par, trust at 32, party unity shaky, and a
+populist opposition (close the borders, spend on the NHS, law and order, slow down net zero)
+three points behind in the polls. Voters weight migration heavily and reward "taxing the wealthy
+to fund services" (the `fairness` issue score). "Sandbox 2026" is the same machine with the
+political heat turned down, for learning.
+
+## Balance (v0.3, 30 seeds each)
 
 | Strategy / scenario | Wins |
 |---|---|
-| Steady stewardship, standard | ~85% |
-| Steady stewardship, hard scenarios | 65–75% |
-| Random card choices, levers untouched | 0% (lose by 2034–2039) |
+| Steady stewardship, Britain 2026 | ~77% |
+| Steady stewardship, hard scenarios | 60–75% |
+| Random card choices, levers untouched | 0% (lose by 2029–2034) |
 | Tax cuts + spending rises | 0% (IMF or 2029 defeat) |
 
 ## Adding a system

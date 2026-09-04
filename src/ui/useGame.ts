@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { historyContext, papersContext } from '../llm/context';
+import { llm } from '../llm/provider';
 import { Game } from '../sim/game';
 import type { Levers } from '../sim/types';
 
@@ -17,6 +19,7 @@ function load(): Game | null {
 export function useGame() {
   const [game, setGame] = useState<Game | null>(() => load());
   const [tick, setTick] = useState(0); // force re-render after mutating the game object
+  const [papersLoading, setPapersLoading] = useState(false);
   const bump = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
@@ -41,8 +44,27 @@ export function useGame() {
       },
       endTurn: () => {
         if (!game?.canEndTurn) return;
-        game.endTurn();
+        const entry = game.endTurn();
         bump();
+        // narration is fire-and-forget: the turn is already resolved, the papers arrive when they arrive
+        setPapersLoading(true);
+        llm
+          .papers(papersContext(game, entry))
+          .then((p) => {
+            entry.papers = p;
+          })
+          .finally(() => {
+            setPapersLoading(false);
+            bump();
+          });
+        if (game.status.kind !== 'playing' && !game.historyBook) {
+          llm.history(historyContext(game)).then((h) => {
+            if (h) {
+              game.historyBook = h;
+              bump();
+            }
+          });
+        }
       },
       newGame: (scenario = 'standard', tutorial = false, seed?: number) => {
         localStorage.removeItem(KEY);
@@ -65,5 +87,5 @@ export function useGame() {
     }),
     [game, bump],
   );
-  return { ...api, tick };
+  return { ...api, tick, papersLoading };
 }

@@ -28,7 +28,7 @@ export function structuralRevenue(s: State): number {
 /** Programme spending share of GDP (excludes debt interest and cyclical benefits). */
 export function programmeSpending(s: State): number {
   const L = s.levers;
-  const other = 8.0;
+  const other = 9.4; // local government, transport, culture, aid, admin: the bits with no lever
   return L.nhs + L.education + L.welfare + L.infrastructure + L.defence + L.policing + L.green + L.integration + other;
 }
 

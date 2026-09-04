@@ -5,17 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "sim": "tsx scripts/headless.ts",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "worker": "wrangler dev"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260904.1",
     "@types/node": "^26.4.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

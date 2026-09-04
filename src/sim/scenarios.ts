@@ -20,9 +20,34 @@ export const SCENARIOS: Scenario[] = [
     id: 'standard',
     name: 'Britain, 2026',
     difficulty: 'normal',
-    blurb: 'Slow growth, debt near 100% of GDP, an ageing NHS and an election in 2029. The base game.',
-    lesson: 'Steady stewardship: fund need as it grows, keep the deficit near 3%, avoid big swings.',
+    blurb: 'Where the UK actually is: 1% growth, taxes at a post-war high, record NHS waiting lists, migration falling but the top public worry, trust at 32, and a populist opposition ahead in the polls. Election due 2029.',
+    lesson: 'Steady stewardship under pressure: fund need as it grows, hold the deficit, rebuild trust and cohesion, and do not let the opposition own migration.',
     learn: ['stocks-flows', 'voter-blocs'],
+  },
+  {
+    id: 'sandbox',
+    name: 'Sandbox 2026',
+    difficulty: 'normal',
+    blurb: 'The same country with the political heat turned down: a fresh mandate, trust at 40, a conventional opposition. For learning the systems before the fight.',
+    lesson: 'The machine without the politics: watch how the loops behave when nobody is shouting.',
+    learn: ['stocks-flows', 'feedback-loops'],
+    apply: (s) => {
+      s.trust = 40;
+      s.cohesion = 55;
+      s.integration = 55;
+      s.nhsQuality = 50;
+      s.happiness = 50;
+      s.fatigue = 0.4;
+      s.partyUnity = 65;
+      s.unrest = 18;
+      s.approval = { working: 45, middle: 48, business: 48, young: 45, pensioners: 46, publicSector: 48 };
+      s.nationalApproval = 46;
+      s.opposition.leader = 'Rachel Okafor';
+      s.opposition.platform = { taxSpend: -0.2, migration: -0.4, green: -0.2, authority: 0.3 };
+      s.opposition.credibility = 42;
+      s.opposition.appeal = { working: 38, middle: 38, business: 42, young: 33, pensioners: 40, publicSector: 32 };
+      s.opposition.national = 37.5;
+    },
   },
   {
     id: 'energy-war',
@@ -71,7 +96,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'populist-wave',
     name: 'Populist wave',
     difficulty: 'hard',
-    blurb: 'Net migration is 500,000, integration has broken down, trust is at 30 and a populist opposition is riding the anger.',
+    blurb: 'The 2026 situation, but worse: net migration back at 500,000, integration broken, cohesion at 44, riots in the summer and the populists surging.',
     lesson: 'Integration strain: migration boosts growth but, when absorption lags, cohesion falls and politics turns.',
     learn: ['migration', 'integration', 'opposition'],
     apply: (s) => {
@@ -80,11 +105,10 @@ export const SCENARIOS: Scenario[] = [
       s.prevLevers.migrationOpenness = 80;
       s.integration = 40;
       s.cohesion = 44;
-      s.trust = 30;
+      s.trust = 28;
       s.housePriceToIncome = 8.8;
-      s.opposition.platform = { taxSpend: 0.2, migration: -0.9, green: -0.5, authority: 0.8 };
+      s.opposition.platform = { taxSpend: 0.2, migration: -0.95, green: -0.5, authority: 0.85 };
       s.opposition.credibility = 58;
-      s.opposition.leader = 'Vince Harrow';
       s.approval.working = 38;
       s.approval.pensioners = 40;
     },

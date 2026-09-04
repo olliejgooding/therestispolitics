@@ -8,7 +8,7 @@ import { AXES, BLOC_IDEAL, BLOC_INFO, BLOCS, type Axis, type BlocId, type Electi
 
 export type Issue =
   | 'jobs' | 'prices' | 'growth' | 'nhs' | 'education' | 'housing' | 'cohesion' | 'migration'
-  | 'crime' | 'taxBurden' | 'businessClimate' | 'welfare' | 'climate' | 'institutions' | 'debt' | 'services' | 'defence';
+  | 'crime' | 'taxBurden' | 'businessClimate' | 'welfare' | 'climate' | 'institutions' | 'debt' | 'services' | 'defence' | 'fairness';
 
 /** Each score is roughly in [-10, +10]; 0 means "about where 2026 was". */
 export function issueScores(s: State): Record<Issue, number> {
@@ -31,17 +31,19 @@ export function issueScores(s: State): Record<Issue, number> {
     debt: -0.12 * (s.debtRatio - 96) - 0.8 * Math.max(0, s.deficit - 4),
     services: 1.2 * (L.nhs - 8) + 1.2 * (L.education - 4.5) + 1.0 * (L.policing - 2),
     defence: 2 * (L.defence - 2.3) + 0.1 * (s.internationalStanding - 65),
+    // "tax the wealthy to fund services": popular with most blocs, the mirror image of businessClimate
+    fairness: 0.08 * (L.progressivity - 50) + 0.6 * (L.corpTax - 25) - 30 * (s.gini - 0.35),
   };
 }
 
 /** Bloc preference weights. Rows sum to about 1. */
 export const BLOC_WEIGHTS: Record<BlocId, Partial<Record<Issue, number>>> = {
-  working: { jobs: 0.2, prices: 0.2, nhs: 0.14, migration: 0.12, crime: 0.1, welfare: 0.08, housing: 0.06, taxBurden: 0.06, debt: 0.04 },
-  middle: { growth: 0.15, nhs: 0.15, education: 0.15, taxBurden: 0.15, institutions: 0.15, prices: 0.1, housing: 0.08, debt: 0.07 },
+  working: { jobs: 0.18, prices: 0.2, nhs: 0.14, migration: 0.16, crime: 0.1, welfare: 0.05, housing: 0.05, taxBurden: 0.05, fairness: 0.05, debt: 0.02 },
+  middle: { growth: 0.15, nhs: 0.15, education: 0.13, taxBurden: 0.15, institutions: 0.14, prices: 0.1, housing: 0.08, debt: 0.06, fairness: 0.04 },
   business: { growth: 0.25, businessClimate: 0.3, institutions: 0.1, debt: 0.15, prices: 0.1, migration: -0.05, taxBurden: 0.05 },
-  young: { housing: 0.26, jobs: 0.16, climate: 0.15, education: 0.12, cohesion: 0.1, migration: -0.05, institutions: 0.07, prices: 0.05, debt: 0.06 },
-  pensioners: { nhs: 0.25, prices: 0.2, welfare: 0.13, crime: 0.12, migration: 0.1, defence: 0.07, debt: 0.08, cohesion: 0.05 },
-  publicSector: { services: 0.35, institutions: 0.15, prices: 0.15, nhs: 0.1, education: 0.1, jobs: 0.1, welfare: 0.05 },
+  young: { housing: 0.26, jobs: 0.15, climate: 0.13, education: 0.1, cohesion: 0.1, migration: -0.05, institutions: 0.07, prices: 0.05, debt: 0.04, fairness: 0.08 },
+  pensioners: { nhs: 0.25, prices: 0.2, welfare: 0.12, crime: 0.12, migration: 0.14, defence: 0.06, debt: 0.06, cohesion: 0.05, fairness: 0.02 },
+  publicSector: { services: 0.32, institutions: 0.14, prices: 0.14, nhs: 0.1, education: 0.1, jobs: 0.08, welfare: 0.04, fairness: 0.08 },
 };
 
 /** Why does this bloc feel the way it does? Returns every contribution to its approval target. */
@@ -59,7 +61,7 @@ export function blocContributions(s: State, bloc: BlocId, scores = issueScores(s
 export const ISSUE_LABEL: Record<Issue, string> = {
   jobs: 'Jobs', prices: 'Prices', growth: 'Growth', nhs: 'NHS', education: 'Education', housing: 'Housing', cohesion: 'Cohesion',
   migration: 'Migration', crime: 'Crime', taxBurden: 'Tax burden', businessClimate: 'Business climate', welfare: 'Welfare', climate: 'Climate',
-  institutions: 'Institutions', debt: 'Public finances', services: 'Service funding', defence: 'Defence & standing',
+  institutions: 'Institutions', debt: 'Public finances', services: 'Service funding', defence: 'Defence & standing', fairness: 'Fairness of the tax system',
 };
 
 export function blocTarget(s: State, bloc: BlocId, scores = issueScores(s)): number {

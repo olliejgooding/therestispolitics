@@ -7,13 +7,18 @@ import { Rng } from './rng';
 import { BLOCS } from './types';
 
 describe('baseline calibration', () => {
-  it('issue scores are ~0 at the 2026 starting state', () => {
+  it('issue scores are small at the 2026 starting state (it is a hard year, not a neutral one)', () => {
     const s = initialState();
-    for (const [k, v] of Object.entries(issueScores(s))) expect(Math.abs(v), k).toBeLessThan(1.5);
+    for (const [k, v] of Object.entries(issueScores(s))) expect(Math.abs(v), k).toBeLessThan(3.5);
   });
   it('bloc targets start near their initial approval', () => {
     const s = initialState();
-    for (const b of BLOCS) expect(Math.abs(blocTarget(s, b) - s.approval[b]), b).toBeLessThan(6);
+    for (const b of BLOCS) expect(Math.abs(blocTarget(s, b) - s.approval[b]), b).toBeLessThan(8);
+  });
+  it('the opposition starts within striking distance but behind', () => {
+    const s = initialState();
+    expect(s.opposition.national).toBeLessThan(s.nationalApproval);
+    expect(s.nationalApproval - s.opposition.national).toBeLessThan(8);
   });
   it('holding all levers keeps the economy in a sane band for 20 years', () => {
     let s = initialState();
