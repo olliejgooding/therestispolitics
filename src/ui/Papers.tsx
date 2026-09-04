@@ -11,8 +11,8 @@ export function PapersView({ papers, loading }: { papers?: Papers | null; loadin
           {([papers.tabloid, papers.broadsheet, papers.satirical] as const).map((p, i) => (
             <div className={`frontpage ${['tabloid', 'broadsheet', 'satirical'][i]}`} key={i}>
               <div className="masthead">{p.paper}</div>
-              <div className="headline">{p.headline}</div>
-              <div className="standfirst">{p.standfirst}</div>
+              <div className="fp-headline">{p.headline}</div>
+              <div className="fp-standfirst">{p.standfirst}</div>
             </div>
           ))}
         </div>

@@ -21,7 +21,7 @@ export function EndScreen({ game, onNewGame }: { game: Game; onNewGame: () => vo
   ];
   return (
     <div className="overlay">
-      <div className="end" style={{ maxHeight: '92vh', overflowY: 'auto' }}>
+      <div className="end">
         <div className={won ? 'good' : 'bad'} style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>{won ? 'Victory' : 'Game over'}</div>
         <h1>{title}</h1>
         <p className="muted" style={{ margin: 0 }}>
