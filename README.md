@@ -19,10 +19,18 @@ npm run deploy     # build + wrangler deploy to Cloudflare Workers
 ## The LLM layer
 
 The Worker in `worker/index.ts` serves the static game and proxies `POST /api/llm` to an
-OpenAI-compatible Responses API (Azure). It adds the morning papers after every quarter, vox pops
-when you click a citizen, and a history-book chapter at game over. None of it touches the
-simulation: every response is validated against a JSON schema, size-capped, retried once,
-cached by content hash, and if the key is missing the game runs exactly as before.
+OpenAI-compatible Responses API (Azure). Four features use it:
+
+- **The morning papers** after every quarter: three fictional front pages in different voices.
+- **Vox pops**: click a citizen in the mosaic for a quote grounded in that bloc's "why" bars.
+- **The history book**: a chapter written from your record at game over.
+- **Free-text policy**: describe any policy; the Treasury maps it to bounded lever, stock and
+  bloc changes (`src/llm/bounds.ts`), shows you the mapping and costing, and you choose whether
+  to enact it. One per quarter. Injection attempts come back as `feasible: false` with zeros.
+
+Every response is validated against a JSON schema server-side and again client-side, requests
+are size-capped, upstream errors retry once, identical requests are cached by content hash, and
+if the key is missing the game runs exactly as before.
 
 Setup, once:
 
@@ -66,6 +74,15 @@ relevant panel with a link to the encyclopedia. Every `?` in the UI opens the en
 also has a *Why is it like this?* tool that decomposes happiness, each bloc's approval and the
 opposition's appeal into their contributing terms. Scenarios each state the lesson they teach.
 
+## Fiscal rules and Parliament
+
+You choose a fiscal rule in the budget panel (deficit under 3%, current budget balance, or debt
+falling). The OBR judges it from 2029: meeting it lowers gilt yields, breaching it raises them
+and deals a Budget card. Your Commons majority is set at each election with a first-past-the-post
+winner's bonus and shrinks with by-elections and defections. A big programme (lots of lever
+movement in one quarter) or an assault on the courts, press or Bank triggers a vote; rebels come
+from low unity, and a defeat waters the programme down by half.
+
 ## The starting position
 
 "Britain, 2026" is calibrated to where the country actually is: growth around 1%, inflation 3.4%,
@@ -77,12 +94,12 @@ three points behind in the polls. Voters weight migration heavily and reward "ta
 to fund services" (the `fairness` issue score). "Sandbox 2026" is the same machine with the
 political heat turned down, for learning.
 
-## Balance (v0.3, 30 seeds each)
+## Balance (v0.4, 60 seeds each)
 
 | Strategy / scenario | Wins |
 |---|---|
-| Steady stewardship, Britain 2026 | ~77% |
-| Steady stewardship, hard scenarios | 60–75% |
+| Steady stewardship, Britain 2026 | 75% |
+| Do nothing but answer cards sensibly | 70% |
 | Random card choices, levers untouched | 0% (lose by 2029–2034) |
 | Tax cuts + spending rises | 0% (IMF or 2029 defeat) |
 

@@ -24,6 +24,11 @@ const steward: Strategy = (g) => {
     if (s.housePriceToIncome > 8.5) patch.planning = Math.min(100, L.planning + 10);
     if (s.integration < 50) patch.integration = +(L.integration + 0.05).toFixed(2);
     if (s.crime > 105) patch.policing = +(L.policing + 0.1).toFixed(1);
+    // respect the fiscal rule once it is judged: trim the bits the rule counts
+    if (s.fiscalRule !== 'none' && s.year >= 2028 && s.ruleHeadroom < 0) {
+      patch.welfare = +(L.welfare - 0.2).toFixed(1);
+      if (s.fiscalRule !== 'investment') patch.infrastructure = +(L.infrastructure - 0.1).toFixed(1);
+    }
   }
   g.setLevers(patch);
   for (const p of g.pending) {
@@ -45,6 +50,8 @@ const steward: Strategy = (g) => {
       case 'riots': pick('Swift'); break;
       case 'nhs-winter': pick('Emergency'); break;
       case 'housing-bill': pick('Build'); break;
+      case 'fiscal-rule-broken': pick('Spending'); break;
+      case 'confidence-motion': pick('Do a deal'); break;
       default: g.choose(c.id, 0);
     }
   }

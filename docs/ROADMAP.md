@@ -99,14 +99,20 @@ opposition leaders, the guided tutorial, scenario packs. None of it changes the 
 opposition mode (play the other side), and historical starts (1979, 1997, 2010) once the
 demographics and trade systems exist.
 
-## 4. The next three things, in order
+## 4. Status and the next three things
 
-1. **Fiscal rules and Parliament (Tier 2).** They make the existing politics deeper without a
-   single new metric, and they are what actually constrains a real Prime Minister.
-2. **Free-text policy.** The LLM feature with the highest fun per line of code, and it reuses the
-   card effects path so the engine stays authoritative.
-3. **Demographics.** It replaces two assumed indices with a real structure and unlocks the
-   pension-age and care debates that dominate the real 2030s.
+Done (v0.4): fiscal rules, Parliament, free-text policy. A lesson from building them: the
+bisect harness (`git stash` a file, rerun 60 seeds) found that the OBR breach card, not the rule
+itself, was the balance drag. Cards that fire on a state condition are the easiest way to
+accidentally add a tax on the player; give them a cooldown of 12 and a cheap option.
+
+1. **Demographics.** Replace the NHS need index and the welfare share with an age structure:
+   births, ageing, dependency ratio, pension age as a lever, care costs. Unlocks the pension-age
+   and social-care debates that dominate the real 2030s.
+2. **Advisers with a what-if tool** (LLM.md tier 2a). The engine already exposes pure step
+   functions; wrap `simulate(levers, quarters)` and let the Chancellor and Governor answer
+   questions with real numbers.
+3. **Nations and regions.** Sub-blocs with a regional inequality stock and devolution cards.
 
 ## 5. What "unplayable" looks like, so we can spot it
 

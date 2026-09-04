@@ -22,6 +22,16 @@ export function OppositionPanel({ state, onLearn }: { state: State; onLearn: (id
           <div className="muted" style={{ fontSize: 11 }}>{lead >= 0 ? `lead ${lead.toFixed(1)}` : `behind ${(-lead).toFixed(1)}`}</div>
         </div>
       </div>
+      <div className="commons">
+        <span className="muted">Commons majority</span>
+        <b className={state.majority <= 10 ? 'bad' : state.majority <= 40 ? 'warn' : ''}>{state.majority}</b>
+        {state.lastVote && (
+          <span className={`muted vote ${state.lastVote.won ? '' : 'bad'}`} title={`Vote on ${state.lastVote.subject}`}>
+            last vote: {state.lastVote.won ? 'won' : 'LOST'}, {state.lastVote.rebels} rebels
+          </span>
+        )}
+        <button className="qmark" title="Learn about Parliament" onClick={() => onLearn('parliament')}>?</button>
+      </div>
       <div className="axes">
         {AXES.map((x) => (
           <div className="axis" key={x} title={`${AXIS_META[x].low} ← → ${AXIS_META[x].high}`}>

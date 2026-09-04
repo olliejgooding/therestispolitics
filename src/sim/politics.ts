@@ -4,7 +4,7 @@
  */
 import { clamp, DT } from './model';
 import type { Rng } from './rng';
-import { AXES, BLOC_IDEAL, BLOC_INFO, BLOCS, type Axis, type BlocId, type ElectionResult, type State } from './types';
+import { AXES, BLOC_IDEAL, BLOC_INFO, BLOCS, type Axis, type BlocId, type CommonsVote, type ElectionResult, type State } from './types';
 
 export type Issue =
   | 'jobs' | 'prices' | 'growth' | 'nhs' | 'education' | 'housing' | 'cohesion' | 'migration'
@@ -217,6 +217,15 @@ export function runElection(s: State, rng: Rng): { state: State; result: Electio
   const won = govShare > oppShare;
   const next: State = { ...s, approval: { ...s.approval }, blocMemory: { ...s.blocMemory }, flags: { ...s.flags }, opposition: { ...s.opposition } };
   delete next.flags.campaignBonus;
+  // seats: a rough uniform-swing mapping from the share gap; a hung parliament means a thin coalition majority
+  const gap = govShare - oppShare;
+  // first-past-the-post gives the winner a bonus: 2024's 10-point gap was a 174 majority, 2019's 12-point gap was 80
+  next.majority = won ? Math.round(clamp(15 + gap * 14, 8, 250)) : Math.round(clamp(gap * 14 - 15, -250, -8));
+  if (won && gap < 0.5) {
+    next.majority = 8;
+    next.partyUnity = clamp(next.partyUnity - 8, 0, 100);
+  }
+  next.lastVote = null;
   if (won) {
     next.electionsWon += 1;
     next.fatigue *= 0.6;
@@ -228,4 +237,21 @@ export function runElection(s: State, rng: Rng): { state: State; result: Electio
     next.opposition.leader = rng.pick(LEADER_NAMES.filter((n) => n !== s.opposition.leader));
   }
   return { state: next, result: { year: s.year, govShare, oppShare, won, approvalAtPoll, blocs } };
+}
+
+/**
+ * A Commons vote on this quarter's programme. Rebels come from low unity, big lever swings and institutional damage.
+ * The government wins if rebels are fewer than half its majority (each rebel is a vote lost and a vote gained by the other side).
+ */
+export function commonsVote(s: State, friction: number, institutional: number, rng: Rng, subject: string): CommonsVote {
+  const base = 0.5 * Math.max(0, 55 - s.partyUnity); // a demoralised party rebels more
+  const swing = 6 * friction; // every point of policy friction brings rebels
+  const inst = 2.5 * institutional; // overriding courts, press or the Bank
+  const rebels = Math.max(0, Math.round(base + swing + inst + rng.normal() * 2));
+  return { subject, rebels, majority: s.majority, won: rebels * 2 < s.majority };
+}
+
+/** How much this quarter's card decisions damaged institutions (0 if none). */
+export function institutionalDamage(before: State, after: State): number {
+  return Math.max(0, before.pressFreedom - after.pressFreedom) + Math.max(0, before.judicialIndependence - after.judicialIndependence) + Math.max(0, before.cbIndependence - after.cbIndependence);
 }

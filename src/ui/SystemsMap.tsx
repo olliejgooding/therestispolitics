@@ -10,6 +10,7 @@ const LOOPS: { kind: 'R' | 'B'; name: string; chain: string; learn: string }[] =
   { kind: 'R', name: 'Skills dividend', learn: 'human-capital', chain: 'Education → human capital (10-year lag) → productivity → revenue → room to invest' },
   { kind: 'B', name: 'Ageing NHS', learn: 'nhs-need', chain: 'Ageing → need ↑ 1.5%/yr → same funding buys less → quality ↓ → pensioners & workers angry' },
   { kind: 'B', name: 'Time for a change', learn: 'elections', chain: 'Every year in office → fatigue ↑ → approval ↓ (each win only partly resets it)' },
+  { kind: 'B', name: 'Fiscal credibility', learn: 'fiscal-rules', chain: 'Rule met → premium ↓ → interest ↓ → easier to meet the rule (and the reverse: a breach compounds)' },
   { kind: 'B', name: 'Legitimacy', learn: 'unrest', chain: 'Approval low for long → party unity ↓ → leadership challenge' },
   { kind: 'B', name: 'Energy resilience', learn: 'energy-security', chain: 'Green investment → energy security ↑ → smaller inflation hit from global shocks' },
 ];

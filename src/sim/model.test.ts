@@ -65,3 +65,49 @@ describe('game loop', () => {
     expect(g2.pending.map((p) => p.card.id)).toEqual(g.pending.map((p) => p.card.id));
   });
 });
+
+describe('parliament and fiscal rules', () => {
+  it('a huge budget swing with a demoralised party loses a Commons vote and is watered down', () => {
+    const g = new Game(5);
+    g.state.partyUnity = 35;
+    g.state.majority = 20;
+    g.setLevers({ incomeTax: 30, nhs: 11, welfare: 14 });
+    for (const p of g.pending) g.choose(p.card.id, 0);
+    g.endTurn();
+    expect(g.state.lastVote).not.toBeNull();
+    expect(g.state.lastVote!.won).toBe(false);
+    expect(g.state.levers.incomeTax).toBeLessThan(30);
+  });
+  it('a modest budget with a united party passes without drama', () => {
+    const g = new Game(5);
+    g.state.partyUnity = 75;
+    g.setLevers({ nhs: 8.2 });
+    for (const p of g.pending) g.choose(p.card.id, 0);
+    g.endTurn();
+    expect(g.state.lastVote).toBeNull();
+    expect(g.state.levers.nhs).toBeCloseTo(8.2, 5);
+  });
+  it('changing the fiscal rule mid-parliament costs credibility', () => {
+    const g = new Game(5);
+    const before = g.state.riskPremium;
+    g.setFiscalRule('debt');
+    expect(g.state.riskPremium).toBeGreaterThan(before);
+    expect(g.state.fiscalRule).toBe('debt');
+  });
+});
+
+describe('save migration', () => {
+  it('loads a save from an older build that lacks newer state fields', () => {
+    const g = new Game(9);
+    for (const p of g.pending) g.choose(p.card.id, 0);
+    g.endTurn();
+    const j = JSON.parse(JSON.stringify(g.toJSON()));
+    for (const s of [j.state, ...j.history]) { delete s.fiscalRule; delete s.majority; delete s.ruleHeadroom; delete s.lastVote; }
+    delete j.tutorial; delete j.historyBook;
+    const g2 = Game.fromJSON(j);
+    expect(g2.state.fiscalRule).toBe('investment');
+    expect(g2.state.majority).toBe(160);
+    for (const p of g2.pending) g2.choose(p.card.id, 0);
+    expect(() => g2.endTurn()).not.toThrow();
+  });
+});

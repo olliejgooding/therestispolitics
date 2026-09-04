@@ -5,7 +5,7 @@
  * Convention: every rate written as "per year" and multiplied by DT. Stocks move by flows only.
  */
 import type { Rng } from './rng';
-import type { State } from './types';
+import { FISCAL_RULE_GRACE_YEAR, type State } from './types';
 
 export const DT = 0.25;
 
@@ -71,7 +71,10 @@ export function stepEconomy(prev: State, rng: Rng): State {
   const spendPrev = L === P ? spendNow : programmeSpending({ ...s, levers: P });
   const taxNow = structuralRevenue(s);
   const taxPrev = L === P ? taxNow : structuralRevenue({ ...s, levers: P });
-  const fiscalImpulse = 1.0 * (spendNow - spendPrev) - 0.6 * (taxNow - taxPrev); // one-off level shift in gap
+  // announced changes enter a pipeline and reach demand over about a year: departments cannot spend a windfall in a quarter
+  s.fiscalPipeline += 1.0 * (spendNow - spendPrev) - 0.6 * (taxNow - taxPrev);
+  const fiscalImpulse = clamp(s.fiscalPipeline * 0.4, -1.5, 1.5);
+  s.fiscalPipeline -= fiscalImpulse;
   const realRate = s.bankRate - s.inflationExpectations;
   const neutralRealRate = 0.5;
   const monetaryDrag = 0.45 * (realRate - neutralRealRate); // per year
@@ -122,9 +125,18 @@ export function stepEconomy(prev: State, rng: Rng): State {
   const nominalGdp = (s.gdp * s.priceLevel) / 100;
   s.debt += (s.deficit / 100) * nominalGdp * DT;
   s.debtRatio = (s.debt / nominalGdp) * 100;
+  // fiscal rule: headroom against the Chancellor's own rule, judged after the grace period
+  if (s.quarter === 1) s.debtRatioLastYear = prev.debtRatio;
+  s.ruleHeadroom = ruleHeadroom(s);
+  const ruleJudged = s.fiscalRule !== 'none' && s.year >= FISCAL_RULE_GRACE_YEAR;
+  const breached = ruleJudged && s.ruleHeadroom < 0;
+  s.ruleBreaches = breached ? s.ruleBreaches + 1 : Math.max(0, s.ruleBreaches - 1);
+  const ruleEffect = s.fiscalRule === 'none' ? 0.2 : breached ? 0.05 + 0.02 * Math.min(8, s.ruleBreaches) : ruleJudged ? -0.15 : -0.05;
+
   const institutionalWeakness = (100 - s.judicialIndependence) * 0.5 + (100 - s.cbIndependence) * 0.5;
   const premiumTarget =
     0.3 +
+    ruleEffect +
     0.05 * Math.max(0, s.debtRatio - 90) +
     0.2 * Math.max(0, s.deficit - 3) +
     0.03 * Math.max(0, institutionalWeakness - 18) +
@@ -145,7 +157,9 @@ export function stepEconomy(prev: State, rng: Rng): State {
     2 * (s.growth - 1.3) -
     0.5 * Math.max(0, s.inflation - 4) -
     0.15 * (L.progressivity - 50) / 5 +
-    0.1 * (s.internationalStanding - 65);
+    0.1 * (s.internationalStanding - 65) -
+    (breached ? 1 : 0) -
+    (s.fiscalRule === 'none' ? 2 : 0);
   s.businessConfidence = clamp(lerp(s.businessConfidence, confTarget, 0.3), 0, 100);
 
   // ---------- migration & integration ----------
@@ -227,6 +241,20 @@ export function stepEconomy(prev: State, rng: Rng): State {
   );
 
   return s;
+}
+
+/** Room against the fiscal rule in % of GDP (debt rule: points of debt ratio). Negative means breached. */
+export function ruleHeadroom(s: State): number {
+  switch (s.fiscalRule) {
+    case 'stability':
+      return 3 - s.deficit;
+    case 'investment':
+      return s.levers.infrastructure + s.levers.green - s.deficit;
+    case 'debt':
+      return s.debtRatioLastYear - s.debtRatio;
+    default:
+      return 0;
+  }
 }
 
 /** Why is happiness what it is? Every term is zero at the 2026 baseline; the 0.7 is hedonic adaptation. */

@@ -4,7 +4,8 @@
  */
 import type { Game, TurnLog } from '../sim/game';
 import { blocContributions } from '../sim/politics';
-import { BLOC_INFO, type BlocId, type State } from '../sim/types';
+import { BLOC_INFO, LEVER_META, type BlocId, type Levers, type State } from '../sim/types';
+import type { PolicyRequest } from './policy';
 import { ALL_METRICS } from '../ui/Metrics';
 import type { HistoryRequest, PapersRequest, VoxPopRequest } from './schemas';
 
@@ -104,5 +105,19 @@ export function historyContext(game: Game): HistoryRequest {
     startEnd: SUMMARY.map((m) => ({ metric: m.label, start: m.get(first), end: m.get(last) })),
     notableDecisions: notable.filter((_, i) => i % step === 0).slice(0, 10),
     oppositionLeaders: leaders,
+  };
+}
+
+export function policyContext(game: Game, text: string): PolicyRequest {
+  const s = game.state;
+  const situation = ALL_METRICS.filter((m) => WATCH.includes(m.key)).map((m) => `${m.label}: ${m.fmt(m.get(s))}`);
+  const keys = Object.keys(LEVER_META) as (keyof Levers)[];
+  return {
+    kind: 'policy',
+    text,
+    date: `${s.year} Q${s.quarter}`,
+    situation,
+    levers: Object.fromEntries(keys.map((k) => [k, s.levers[k]])),
+    leverMeta: keys.map((k) => ({ key: k, label: LEVER_META[k].label, unit: LEVER_META[k].unit, min: LEVER_META[k].min, max: LEVER_META[k].max })),
   };
 }

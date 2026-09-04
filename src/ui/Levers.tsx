@@ -1,5 +1,5 @@
 import { programmeSpending, structuralRevenue } from '../sim/model';
-import { LEVER_META, type Levers, type State } from '../sim/types';
+import { FISCAL_RULE_GRACE_YEAR, FISCAL_RULES, LEVER_META, type FiscalRule, type Levers, type State } from '../sim/types';
 
 const GROUPS: { id: 'tax' | 'spend' | 'policy'; title: string }[] = [
   { id: 'tax', title: 'Tax' },
@@ -7,7 +7,7 @@ const GROUPS: { id: 'tax' | 'spend' | 'policy'; title: string }[] = [
   { id: 'policy', title: 'Policy' },
 ];
 
-export function LeverPanel({ state, onChange }: { state: State; onChange: (patch: Partial<Levers>) => void }) {
+export function LeverPanel({ state, onChange, onRule }: { state: State; onChange: (patch: Partial<Levers>) => void; onRule: (r: FiscalRule) => void }) {
   const L = state.levers;
   const P = state.prevLevers;
   const rev = structuralRevenue(state);
@@ -27,8 +27,22 @@ export function LeverPanel({ state, onChange }: { state: State; onChange: (patch
           <span className="muted">Debt interest</span>
           <b>{state.debtInterestShare.toFixed(1)}% GDP</b>
         </div>
+        <div className="rule-row">
+          <label title="The Chancellor's self-imposed rule. Judged by the OBR from 2029; meeting it lowers gilt yields, breaching it raises them. Changing it mid-parliament costs credibility.">Fiscal rule</label>
+          <select value={state.fiscalRule} onChange={(e) => onRule(e.target.value as FiscalRule)}>
+            {(Object.keys(FISCAL_RULES) as FiscalRule[]).map((r) => (
+              <option key={r} value={r}>{FISCAL_RULES[r].label}</option>
+            ))}
+          </select>
+          {state.fiscalRule !== 'none' && (
+            <span className={state.ruleHeadroom < 0 ? 'bad' : 'good'} title={FISCAL_RULES[state.fiscalRule].help}>
+              {state.year < FISCAL_RULE_GRACE_YEAR ? 'on track: ' : 'headroom: '}
+              {state.ruleHeadroom >= 0 ? '+' : ''}{state.ruleHeadroom.toFixed(1)}{state.fiscalRule === 'debt' ? 'pt' : '% GDP'}
+            </span>
+          )}
+        </div>
         <div className="muted" style={{ fontSize: 11 }}>
-          Big moves cost trust and party unity. Changes take effect when you end the turn.
+          Big moves cost trust and party unity, and a big programme needs a Commons vote. Changes take effect when you end the turn.
         </div>
       </div>
       {GROUPS.map((g) => (

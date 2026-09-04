@@ -99,6 +99,13 @@ export function initialState(seed = 2026): State {
       national: 39.5,
     },
     scenario: 'standard',
+    fiscalRule: 'investment',
+    ruleHeadroom: -1.8,
+    ruleBreaches: 0,
+    debtRatioLastYear: (debt / gdp) * 100,
+    majority: 160,
+    fiscalPipeline: 0,
+    lastVote: null,
 
     levers: { ...DEFAULT_LEVERS, migrationOpenness: 40 },
     prevLevers: { ...DEFAULT_LEVERS, migrationOpenness: 40 },

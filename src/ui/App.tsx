@@ -7,6 +7,7 @@ import { LearnView } from './Learn';
 import { NewGameScreen } from './NewGame';
 import { OppositionPanel } from './Opposition';
 import { PapersView } from './Papers';
+import { PolicyBox } from './PolicyBox';
 import { LeverPanel } from './Levers';
 import { Dashboard } from './Metrics';
 import { PopulationView } from './Population';
@@ -90,6 +91,7 @@ export function App() {
                   <CardView key={d.card.id} dealt={d} onChoose={(i) => choose(d.card.id, i)} onLearn={openEntry} />
                 ))}
               </div>
+              <PolicyBox game={game} onApplied={() => setLevers({})} />
               <div className="endturn" data-tour="endturn">
                 <button className="btn" disabled={!game.canEndTurn} onClick={endTurn}>
                   End quarter →
@@ -105,7 +107,7 @@ export function App() {
         </div>
 
         <div className="col" data-tour="levers">
-          <LeverPanel state={s} onChange={setLevers} />
+          <LeverPanel state={s} onChange={setLevers} onRule={(r) => { game.setFiscalRule(r); setLevers({}); }} />
         </div>
       </div>
 

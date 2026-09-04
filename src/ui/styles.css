@@ -251,3 +251,21 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; }
 /* small screens */
 @media (max-width: 900px) { .scenarios { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .scenarios { grid-template-columns: 1fr; } .end { padding: 16px; } }
+/* policy box */
+.policy-input { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: stretch; }
+.policy-input textarea { font: inherit; background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+.proposal { margin-top: 10px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.proposal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.proposal p { margin: 6px 0; font-size: 13px; line-height: 1.45; }
+.conf { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 10px; background: #2b3244; }
+.conf.high { color: var(--good); } .conf.medium { color: var(--warn); } .conf.low { color: var(--bad); }
+@media (max-width: 600px) { .policy-input { grid-template-columns: 1fr; } }
+
+/* fiscal rule + commons */
+.rule-row { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; margin: 6px 0 8px; }
+.rule-row label { cursor: help; color: var(--muted); }
+.rule-row select { font: inherit; font-size: 12px; background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
+.rule-row span { grid-column: 2; font-variant-numeric: tabular-nums; }
+.commons { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 4px 0 8px; }
+.commons b { font-size: 15px; }
+.commons .vote { font-size: 11px; }

@@ -3,6 +3,7 @@
  * If the proxy is not configured, the provider marks itself unavailable and every call resolves null,
  * so the game runs exactly as before.
  */
+import { validatePolicy, type PolicyProposal, type PolicyRequest } from './policy';
 import { validateHistory, validatePapers, validateVoxPop, type HistoryBook, type HistoryRequest, type LlmRequest, type Papers, type PapersRequest, type VoxPop, type VoxPopRequest } from './schemas';
 
 export interface LlmProvider {
@@ -10,6 +11,7 @@ export interface LlmProvider {
   papers(req: PapersRequest): Promise<Papers | null>;
   voxPop(req: VoxPopRequest): Promise<VoxPop | null>;
   history(req: HistoryRequest): Promise<HistoryBook | null>;
+  policy(req: PolicyRequest): Promise<PolicyProposal | null>;
 }
 
 export const NullProvider: LlmProvider = {
@@ -17,6 +19,7 @@ export const NullProvider: LlmProvider = {
   papers: async () => null,
   voxPop: async () => null,
   history: async () => null,
+  policy: async () => null,
 };
 
 const CLIENT_TIMEOUT_MS = 45_000;
@@ -75,6 +78,7 @@ class RemoteProvider implements LlmProvider {
   papers = (req: PapersRequest) => this.call(req, validatePapers);
   voxPop = (req: VoxPopRequest) => this.call(req, validateVoxPop);
   history = (req: HistoryRequest) => this.call(req, validateHistory);
+  policy = (req: PolicyRequest) => this.call(req, validatePolicy);
 }
 
 export const llm: LlmProvider = import.meta.env.VITE_LLM === 'off' ? NullProvider : new RemoteProvider();

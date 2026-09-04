@@ -4,10 +4,13 @@
 import { applyEffects, CARDS, cardById, type Card } from './cards';
 import { initialState } from './initial';
 import { stepEconomy } from './model';
-import { isElectionTurn, runElection, stepPolitics } from './politics';
+import { commonsVote, institutionalDamage, isElectionTurn, leverFriction, runElection, stepPolitics } from './politics';
 import { Rng } from './rng';
 import { scenarioById, type Scenario } from './scenarios';
+import type { PolicyProposal } from '../llm/policy';
 import type { HistoryBook, Papers } from '../llm/schemas';
+import { clamp, ruleHeadroom } from './model';
+import { FISCAL_RULES, LEVER_META, type BlocId, type FiscalRule } from './types';
 import type { ElectionResult, GameStatus, Headline, Levers, State } from './types';
 
 export interface DealtCard {
@@ -22,6 +25,7 @@ export interface TurnLog {
   headlines: Headline[];
   decisions: { card: string; option: string }[];
   papers?: Papers | null;
+  proposal?: string;
 }
 
 const TIMER_FLAGS = new Set(['giltStrike', 'safeFromCoup']);
@@ -40,6 +44,8 @@ export class Game {
   scenario: Scenario;
   tutorial: { enabled: boolean; step: number } = { enabled: false, step: 0 };
   historyBook: HistoryBook | null = null;
+  proposalsThisTurn = 0;
+  private pendingProposal: { title: string; text: string } | null = null;
 
   constructor(seed = 2026, scenarioId = 'standard', tutorial = false) {
     this.scenario = scenarioById(scenarioId);
@@ -61,9 +67,44 @@ export class Game {
     this.state = { ...this.state, levers: { ...this.state.levers, ...patch } };
   }
 
+  /** Changing the rule mid-parliament costs credibility unless you are adopting one for the first time. */
+  setFiscalRule(rule: FiscalRule) {
+    const s = this.state;
+    if (rule === s.fiscalRule) return;
+    const cost = s.fiscalRule === 'none' ? 0 : 1;
+    this.state = {
+      ...s,
+      fiscalRule: rule,
+      ruleHeadroom: ruleHeadroom({ ...s, fiscalRule: rule }),
+      ruleBreaches: 0,
+      riskPremium: s.riskPremium + 0.3 * cost,
+      trust: clamp(s.trust - 2 * cost, 0, 100),
+      blocMemory: { ...s.blocMemory, business: s.blocMemory.business - 3 * cost, middle: s.blocMemory.middle - 1 * cost },
+    };
+  }
+
   choose(cardId: string, option: number) {
     const d = this.pending.find((p) => p.card.id === cardId);
     if (d) d.choice = option;
+  }
+
+  /** Enact a free-text policy: bounded lever/stock/bloc deltas through the same path as cards. Once per quarter. */
+  applyProposal(p: PolicyProposal, text: string) {
+    if (this.proposalsThisTurn >= 1 || !p.feasible) return;
+    const s = this.state;
+    const levers: Partial<Levers> = {};
+    for (const [k, v] of Object.entries(p.levers)) {
+      const key = k as keyof Levers;
+      const meta = LEVER_META[key];
+      if (!meta) continue;
+      levers[key] = clamp(s.levers[key] + v, meta.min, meta.max);
+    }
+    this.state = applyEffects({ ...s, levers: { ...s.levers, ...levers } }, {
+      stocks: p.stocks as Parameters<typeof applyEffects>[1]['stocks'],
+      blocs: p.blocs as Partial<Record<BlocId, number>>,
+    });
+    this.proposalsThisTurn = 1;
+    this.pendingProposal = { title: p.title, text };
   }
 
   get canEndTurn(): boolean {
@@ -84,6 +125,28 @@ export class Game {
       decisions.push({ card: p.card.title, option: opt.label });
       this.lastDealt[p.card.id] = s.turn;
       if (p.card.once) this.used.add(p.card.id);
+    }
+
+    // 1b. the Commons: a big programme or an assault on institutions needs a vote
+    const friction = leverFriction(s);
+    const damage = institutionalDamage(this.history[this.history.length - 1], s);
+    let voteHeadline: Headline | null = null;
+    if (friction > 1.5 || damage >= 5) {
+      const subject = damage >= 5 ? 'constitutional legislation' : 'the budget';
+      const vote = commonsVote(s, friction, damage, this.rng, subject);
+      s = { ...s, lastVote: vote };
+      if (!vote.won) {
+        // defeat: the programme is watered down by half, the party is bruised
+        const L = { ...s.levers };
+        for (const k of Object.keys(L) as (keyof Levers)[]) L[k] = s.prevLevers[k] + 0.5 * (L[k] - s.prevLevers[k]);
+        s = { ...s, levers: L, partyUnity: clamp(s.partyUnity - 4, 0, 100), trust: clamp(s.trust - 1, 0, 100) };
+        voteHeadline = { text: `Government defeated on ${subject}: ${vote.rebels} rebels. The programme is watered down.`, tone: 'bad' };
+      } else if (vote.rebels * 2 > s.majority * 0.6) {
+        s = { ...s, partyUnity: clamp(s.partyUnity - 2, 0, 100) };
+        voteHeadline = { text: `Narrow Commons win on ${subject}: ${vote.rebels} rebels against a majority of ${s.majority}.`, tone: 'neutral' };
+      }
+    } else if (s.lastVote) {
+      s = { ...s, lastVote: null };
     }
 
     // 2. simulate the quarter
@@ -128,10 +191,17 @@ export class Game {
       }
     }
 
+    if (voteHeadline) headlines.push(voteHeadline);
     headlines.push(...generateHeadlines(prev, s));
     this.state = s;
     this.history.push(s);
     const entry: TurnLog = { turn: s.turn, year: s.year, quarter: s.quarter, headlines, decisions };
+    if (this.pendingProposal) {
+      entry.proposal = this.pendingProposal.title;
+      entry.decisions.push({ card: 'Policy proposal', option: this.pendingProposal.title });
+      this.pendingProposal = null;
+    }
+    this.proposalsThisTurn = 0;
     this.log.push(entry);
     this.pending = [];
     if (this.status.kind === 'playing') this.deal();
@@ -186,8 +256,11 @@ export class Game {
 
   static fromJSON(j: ReturnType<Game['toJSON']>): Game {
     const g = new Game(0, j.scenario);
-    g.state = j.state;
-    g.history = j.history;
+    // saves from older builds lack newer fields: fill them from the defaults so the page never crashes on load
+    const defaults = initialState(0);
+    const migrate = (s: State): State => ({ ...defaults, ...s, levers: { ...defaults.levers, ...s.levers }, prevLevers: { ...defaults.prevLevers, ...s.prevLevers }, opposition: { ...defaults.opposition, ...s.opposition }, flags: { ...s.flags } });
+    g.state = migrate(j.state);
+    g.history = (j.history ?? []).map(migrate);
     g.log = j.log;
     g.elections = j.elections;
     g.status = j.status;
@@ -228,6 +301,9 @@ export function generateHeadlines(a: State, b: State): Headline[] {
   if (b.happiness > 58 && a.happiness <= 58) push('Britain is happier than at any time this decade.', 'good');
   if (b.netMigration > 450 && a.netMigration <= 450) push('Net migration passes 450,000.', 'neutral');
   if (b.emissions < a.emissions * 0.97) push('Emissions fall sharply.', 'good');
+  if (a.fiscalRule !== 'none' && b.ruleHeadroom < 0 && a.ruleHeadroom >= 0 && b.year >= 2029) push(`OBR: the government is in breach of its fiscal rule (${FISCAL_RULES[b.fiscalRule].short}).`, 'bad');
+  if (b.fiscalRule !== 'none' && b.ruleHeadroom >= 0 && a.ruleHeadroom < 0 && b.year >= 2029) push('OBR: the fiscal rule is being met again.', 'good');
+  if (b.majority <= 10 && a.majority > 10) push('Majority down to single figures. Every vote is now a whipping operation.', 'bad');
   if (b.opposition.leader !== a.opposition.leader) push(`${b.opposition.leader} becomes leader of the opposition.`, 'neutral');
   if (b.opposition.national > b.nationalApproval && a.opposition.national <= a.nationalApproval) push('Poll shock: the opposition takes the lead.', 'bad');
   if (b.opposition.national < b.nationalApproval && a.opposition.national >= a.nationalApproval) push('You regain the lead in the polls.', 'good');

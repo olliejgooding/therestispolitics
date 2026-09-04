@@ -109,7 +109,8 @@ potentialGdp      += potentialGdp * (productivityGrowth + laborGrowth) * dt
 
 ### 3.2 Demand side (output gap)
 ```
-fiscalImpulse    = multiplier_spend * Δ(spending/GDP) - multiplier_tax * Δ(tax/GDP)
+pipeline        += multiplier_spend * Δ(spending/GDP) - multiplier_tax * Δ(tax/GDP)
+fiscalImpulse    = 40% of the pipeline per quarter, capped at ±1.5   # announcements take a year to reach demand
 monetaryDrag     = m * (realRate - neutralRate)
 externalDemand   = x * worldGrowth + s * (sterling depreciation)
 confidenceEffect = c * (businessConfidence - 50)/50
@@ -258,6 +259,24 @@ they get. Leaders change when trailing badly and after election defeats.
 0.8·appeal + 6 − swing. Win if size-weighted gov > opp. A win cuts `fatigue` by 40% and gives a
 fading honeymoon.
 
+### 3.15a Fiscal rules
+```
+headroom: stability = 3 − deficit;  investment = infrastructure + green − deficit;  debt = debtRatio(last year) − debtRatio
+judged from 2029:  premium += breached ? 0.05 + 0.02·breachQuarters : −0.15;   no rule: +0.2;   confidence −1 while breached
+```
+Changing the rule mid-parliament: premium +0.3, trust −2, business memory −3. A breach in a
+Budget quarter deals *The OBR says you have broken your rule*.
+
+### 3.15b Parliament
+```
+majority (at election) = 15 + 14·(govShare − oppShare), min 8; hung (gap < 0.5) → 8 seats and unity −8
+vote needed if friction > 1.5 or institutional damage ≥ 5 this quarter
+rebels = 0.5·max(0, 55 − unity) + 6·friction + 2.5·institutionalDamage + N(0, 2)
+win if 2·rebels < majority;  defeat: levers ← prev + ½·(levers − prev), unity −4, trust −1
+```
+By-elections and defections cost two seats each; a majority of four or fewer deals the
+confidence motion.
+
 ### 3.16 Scenarios
 A scenario is a starting-state override plus scripted cards on fixed turns, each with a stated
 lesson and encyclopedia links: Britain 2026, Energy war, Fiscal cliff, Populist wave, Boom times,
@@ -316,8 +335,10 @@ are discrete political acts.
 v0.1: core loop, 6 blocs, ~30 cards, population mosaic, charts, headless harness.
 v0.2: adaptive opposition, 6 scenarios, 43 cards, encyclopedia with live figures and
 decomposition tools.
-v0.3 (this build): realistic 2026 calibration with a populist opposition and the fairness issue,
-guided tutorial, Simple/Full dashboard, Cloudflare Worker with the LLM narration layer (papers,
-vox pops, history book). See ROADMAP.md for tiers and rules for further systems. Later: a real Parliament with rebels and votes, devolved nations, trade
+v0.3: realistic 2026 calibration with a populist opposition and the fairness issue, guided
+tutorial, Simple/Full dashboard, Cloudflare Worker with the LLM narration layer (papers, vox
+pops, history book).
+v0.4 (this build): free-text policy through the Treasury (bounded LLM interpreter), fiscal rules
+judged by the OBR, and a Commons with a majority, rebels and votes. See ROADMAP.md for tiers. Later: a real Parliament with rebels and votes, devolved nations, trade
 deals, a Python calibration notebook against ONS/OBR series, guided tutorials per scenario, and
 multiplayer "cabinet" mode.

@@ -48,8 +48,8 @@ export const EXTRA_CARDS: Card[] = [
     weight: 2,
     cooldown: 8,
     options: [
-      { label: '"We are listening"', description: 'Promise a reset. A modest trust gain if you then actually change something.', effects: { stocks: { trust: 1, partyUnity: -3 } } },
-      { label: 'Blame local factors', description: 'Nobody believes you.', effects: { stocks: { trust: -2, partyUnity: -5 }, opposition: { credibility: 3 } } },
+      { label: '"We are listening"', description: 'Promise a reset. A modest trust gain if you then actually change something. One seat fewer either way.', effects: { stocks: { trust: 1, partyUnity: -3 }, fn: (s) => { s.majority -= 2; } } },
+      { label: 'Blame local factors', description: 'Nobody believes you. One seat fewer either way.', effects: { stocks: { trust: -2, partyUnity: -5 }, opposition: { credibility: 3 }, fn: (s) => { s.majority -= 2; } } },
     ],
   },
   {
@@ -62,8 +62,38 @@ export const EXTRA_CARDS: Card[] = [
     weight: 2,
     cooldown: 10,
     options: [
-      { label: 'Wish them well', description: 'Dignified.', effects: { stocks: { partyUnity: -3, trust: 1 }, opposition: { credibility: 2 } } },
-      { label: 'Brief against them', description: 'Dirt in the Sunday papers. The party enjoys it; the public does not.', effects: { stocks: { partyUnity: 2, trust: -2, pressFreedom: -1 }, opposition: { credibility: 1 } } },
+      { label: 'Wish them well', description: 'Dignified. Your majority falls by two.', effects: { stocks: { partyUnity: -3, trust: 1 }, opposition: { credibility: 2 }, fn: (s) => { s.majority -= 2; } } },
+      { label: 'Brief against them', description: 'Dirt in the Sunday papers. The party enjoys it; the public does not. Your majority falls by two.', effects: { stocks: { partyUnity: 2, trust: -2, pressFreedom: -1 }, opposition: { credibility: 1 }, fn: (s) => { s.majority -= 2; } } },
+    ],
+  },
+  {
+    id: 'fiscal-rule-broken',
+    title: 'The OBR says you have broken your rule',
+    category: 'economy',
+    learn: ['fiscal-rules'],
+    body: "The Office for Budget Responsibility's forecast shows the government in breach of its own fiscal rule. The Chancellor must respond at the Budget.",
+    condition: (s) => s.fiscalRule !== 'none' && s.ruleHeadroom < 0 && s.year >= 2029 && s.quarter === 1,
+    weight: 2,
+    cooldown: 12,
+    options: [
+      { label: 'Spending restraint', description: 'Trim welfare and capital budgets. Markets satisfied; the left of the party is not.', effects: { levers: { welfare: -0.3, infrastructure: -0.2 }, stocks: { riskPremium: -0.3, trust: -1, unrest: 2 }, blocs: all({ business: 3, working: -2, publicSector: -2, young: -1 }) } },
+      { label: 'Raise taxes', description: 'A penny on income tax. Markets satisfied; the middle is not.', effects: { levers: { incomeTax: 1 }, stocks: { riskPremium: -0.3, trust: -1 }, blocs: all({ business: 3, middle: -2, working: -2 }) } },
+      { label: 'Rewrite the rule', description: 'Move the goalposts. Credibility falls, and the next breach costs more.', effects: { stocks: { riskPremium: 0.4, trust: -3, businessConfidence: -4 }, blocs: all({ business: -5, middle: -2 }), fn: (s) => { s.ruleBreaches += 4; } } },
+      { label: 'Blame the forecast', description: "Dispute the OBR's numbers. Nothing changes, and the institution is dented.", effects: { stocks: { trust: -2, judicialIndependence: -1, riskPremium: 0.2 }, blocs: all({ business: -3 }) } },
+    ],
+  },
+  {
+    id: 'confidence-motion',
+    title: 'Motion of no confidence',
+    category: 'crisis',
+    learn: ['parliament'],
+    body: 'With your majority gone, the opposition has tabled a motion of no confidence. Losing it means an early election you are unlikely to win.',
+    condition: (s) => s.majority <= 4,
+    weight: 6,
+    cooldown: 6,
+    options: [
+      { label: 'Do a deal with a smaller party', description: 'Buy their votes with policy: devolution, welfare, green money.', effects: { levers: { welfare: 0.2, green: 0.2 }, stocks: { partyUnity: -4, trust: -1 }, fn: (s) => { s.majority = Math.max(s.majority, 6); } } },
+      { label: 'Face the vote', description: 'Survive if your party is united; otherwise the government falls.', effects: { fn: (s) => { if (s.partyUnity + s.majority > 52) { s.majority = Math.max(s.majority, 5); s.partyUnity += 6; s.honeymoon += 2; } else { s.partyUnity = 0; } } } },
     ],
   },
   // ------------------------------------------------------------------ institutions, deeper

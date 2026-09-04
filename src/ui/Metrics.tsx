@@ -74,6 +74,8 @@ export const METRIC_GROUPS: { title: string; metrics: MetricDef[] }[] = [
       { key: 'nationalApproval', core: true, learn: 'voter-blocs', label: 'Approval', get: (s) => s.nationalApproval, fmt: pct(0), dir: 1, help: 'Size-weighted bloc approval. You need roughly 43%+ at the poll to win.', bar: true },
       { key: 'partyUnity', core: true, learn: 'unrest', label: 'Party unity', get: (s) => s.partyUnity, fmt: num(0), dir: 1, help: 'Below 30 and the letters go in.', bar: true },
       { key: 'unrest', core: true, learn: 'unrest', label: 'Unrest', get: (s) => s.unrest, fmt: num(0), dir: -1, help: 'Above 80 for three quarters and you resign.', bar: true },
+      { key: 'majority', learn: 'parliament', label: 'Commons majority', get: (s) => s.majority, fmt: num(0), dir: 1, help: 'Seats. Big programmes and institutional changes need a vote; rebels come from low unity and big swings.' },
+      { key: 'ruleHeadroom', learn: 'fiscal-rules', label: 'Fiscal rule headroom', get: (s) => s.ruleHeadroom, fmt: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}`, dir: 1, help: 'Room against the Chancellor\'s rule (% GDP, or points of debt ratio). Negative is a breach; judged from 2029.' },
       { key: 'fatigue', learn: 'elections', label: 'Time-for-a-change', get: (s) => s.fatigue, fmt: num(1), dir: -1, help: 'Voter fatigue with your tenure. Drags on approval; partly reset by each win.' },
     ],
   },

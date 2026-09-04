@@ -92,6 +92,23 @@ export const BLOC_IDEAL: Record<BlocId, Record<Axis, number>> = {
   publicSector: { taxSpend: 0.7, migration: 0.2, green: 0.4, authority: -0.2 },
 };
 
+/** The Chancellor's self-imposed fiscal rule, judged by the OBR each quarter after a grace period. */
+export type FiscalRule = 'none' | 'stability' | 'investment' | 'debt';
+export const FISCAL_RULES: Record<FiscalRule, { label: string; short: string; help: string }> = {
+  none: { label: 'No fiscal rule', short: 'None', help: 'Maximum flexibility, minimum credibility: the gilt market prices in the risk.' },
+  stability: { label: 'Deficit below 3% of GDP', short: 'Deficit < 3%', help: 'The Maastricht-style rule. Simple, visible, and it bites in recessions.' },
+  investment: { label: 'Balance the current budget', short: 'Current balance', help: 'Borrow only to invest: the deficit must not exceed infrastructure plus green spending.' },
+  debt: { label: 'Debt falling as a share of GDP', short: 'Debt falling', help: 'Judged year on year. Growth counts, so it rewards the long game.' },
+};
+export const FISCAL_RULE_GRACE_YEAR = 2029; // rules are judged from this year: "by the end of the parliament"
+
+export interface CommonsVote {
+  subject: string;
+  rebels: number;
+  majority: number;
+  won: boolean;
+}
+
 export interface Opposition {
   leader: string;
   platform: Record<Axis, number>;
@@ -184,6 +201,15 @@ export interface State {
   flags: Record<string, number>; // named timers/flags set by cards (value = turns remaining or 1)
   opposition: Opposition;
   scenario: string;
+
+  // fiscal rule and parliament
+  fiscalRule: FiscalRule;
+  ruleHeadroom: number; // % GDP of room against the rule (negative = breached)
+  ruleBreaches: number; // quarters in breach since the rule was set
+  debtRatioLastYear: number;
+  majority: number; // Commons majority in seats
+  fiscalPipeline: number; // announced fiscal impulse not yet spent (pp of GDP), released over several quarters
+  lastVote: CommonsVote | null;
 
   levers: Levers;
   prevLevers: Levers;

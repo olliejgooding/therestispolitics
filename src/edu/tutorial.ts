@@ -5,7 +5,7 @@
 import type { Game } from '../sim/game';
 import type { State } from '../sim/types';
 
-export type TourTarget = 'dashboard' | 'levers' | 'cards' | 'headlines' | 'opposition' | 'endturn' | 'tabs' | 'metric-nhs' | 'metric-inflation' | 'metric-deficit' | 'metric-approval';
+export type TourTarget = 'policy' | 'dashboard' | 'levers' | 'cards' | 'headlines' | 'opposition' | 'endturn' | 'tabs' | 'metric-nhs' | 'metric-inflation' | 'metric-deficit' | 'metric-approval';
 
 export interface TutorialStep {
   id: string;
@@ -64,6 +64,13 @@ export const TUTORIAL: TutorialStep[] = [
     text: 'The opposition panel shows the poll, their leader, and both parties\' positions on four axes. Every year they shift toward the voters you are losing. Winning needs roughly four points of approval over their appeal.',
     target: 'opposition',
     learn: 'opposition',
+    when: (s) => s.turn >= 3,
+  },
+  {
+    id: 'policy',
+    title: 'Or write your own',
+    text: 'Below the cards you can propose any policy in your own words. The Treasury translates it into the model within strict limits, shows you the mapping and the costing, and you choose whether to enact it. One per quarter.',
+    target: 'policy',
     when: (s) => s.turn >= 3,
   },
   {
