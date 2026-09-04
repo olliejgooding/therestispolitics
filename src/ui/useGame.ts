@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { historyContext, papersContext } from '../llm/context';
+import { cardContext, historyContext, papersContext } from '../llm/context';
 import { llm } from '../llm/provider';
 import { Game } from '../sim/game';
 import type { Levers } from '../sim/types';
@@ -31,6 +31,35 @@ export function useGame() {
     }
   }, [game, tick]);
 
+  // generated cards: when the narrator is up, one slot per hand is written from the situation
+  const fill = useCallback(
+    (g: Game) => {
+      if (!g.pending.some((p) => p.loading)) return;
+      const req = cardContext(g);
+      g.generatedCategory = req.category;
+      llm.card(req).then((card) => {
+        if (g.pending.some((p) => p.loading)) {
+          g.setGeneratedCard(card);
+          bump();
+        }
+      });
+    },
+    [bump],
+  );
+  useEffect(() => {
+    if (!game) return;
+    llm.available().then((up) => {
+      if (!up) return;
+      game.wantGenerated = true;
+      // a fresh or reloaded hand without a generated card: add the slot now
+      if (!game.pending.some((p) => p.generated || p.loading) && game.status.kind === 'playing' && game.pending.length >= 2 && game.pending.every((p) => p.choice === null)) {
+        game.pending[game.pending.length - 1] = { card: game.pending[game.pending.length - 1].card, choice: null, loading: true };
+        bump();
+      }
+      fill(game);
+    });
+  }, [game, fill, bump]);
+
   const api = useMemo(
     () => ({
       game,
@@ -46,6 +75,7 @@ export function useGame() {
         if (!game?.canEndTurn) return;
         const entry = game.endTurn();
         bump();
+        fill(game);
         // narration is fire-and-forget: the turn is already resolved, the papers arrive when they arrive
         setPapersLoading(true);
         llm

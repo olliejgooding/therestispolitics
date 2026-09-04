@@ -3,6 +3,7 @@
  * If the proxy is not configured, the provider marks itself unavailable and every call resolves null,
  * so the game runs exactly as before.
  */
+import { validateGeneratedCard, type GenCardRequest, type GeneratedCard } from './gencard';
 import { validatePolicy, type PolicyProposal, type PolicyRequest } from './policy';
 import { validateHistory, validatePapers, validateVoxPop, type HistoryBook, type HistoryRequest, type LlmRequest, type Papers, type PapersRequest, type VoxPop, type VoxPopRequest } from './schemas';
 
@@ -12,6 +13,7 @@ export interface LlmProvider {
   voxPop(req: VoxPopRequest): Promise<VoxPop | null>;
   history(req: HistoryRequest): Promise<HistoryBook | null>;
   policy(req: PolicyRequest): Promise<PolicyProposal | null>;
+  card(req: GenCardRequest): Promise<GeneratedCard | null>;
 }
 
 export const NullProvider: LlmProvider = {
@@ -20,6 +22,7 @@ export const NullProvider: LlmProvider = {
   voxPop: async () => null,
   history: async () => null,
   policy: async () => null,
+  card: async () => null,
 };
 
 const CLIENT_TIMEOUT_MS = 45_000;
@@ -79,6 +82,7 @@ class RemoteProvider implements LlmProvider {
   voxPop = (req: VoxPopRequest) => this.call(req, validateVoxPop);
   history = (req: HistoryRequest) => this.call(req, validateHistory);
   policy = (req: PolicyRequest) => this.call(req, validatePolicy);
+  card = (req: GenCardRequest) => this.call(req, validateGeneratedCard);
 }
 
 export const llm: LlmProvider = import.meta.env.VITE_LLM === 'off' ? NullProvider : new RemoteProvider();

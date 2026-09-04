@@ -16,8 +16,8 @@ const steward: Strategy = (g) => {
   const s = g.state;
   const L = s.levers;
   const patch: Partial<typeof L> = {};
-  if (s.quarter === 1) {
-    // annual budget: keep NHS quality near 50, keep deficit near 3
+  if (s.quarter === 4) {
+    // annual Budget (Q4): keep NHS quality near 50, keep deficit near 3
     if (s.nhsQuality < 48) patch.nhs = +(L.nhs + 0.2).toFixed(1);
     if (s.deficit > 4.5 && s.outputGap > -1) patch.incomeTax = L.incomeTax + 1;
     if (s.deficit < 2 && s.outputGap < 0) patch.incomeTax = Math.max(15, L.incomeTax - 1);
@@ -60,7 +60,7 @@ const steward: Strategy = (g) => {
 /** Cuts taxes, spends more, leans on institutions. Should lose. */
 const reckless: Strategy = (g) => {
   const s = g.state;
-  if (s.quarter === 1) g.setLevers({ incomeTax: Math.max(10, s.levers.incomeTax - 2), welfare: s.levers.welfare + 0.5, nhs: s.levers.nhs + 0.5 });
+  if (s.quarter === 4) g.setLevers({ incomeTax: Math.max(10, s.levers.incomeTax - 2), welfare: s.levers.welfare + 0.5, nhs: s.levers.nhs + 0.5 });
   for (const p of g.pending) g.choose(p.card.id, p.card.options.length - 1);
 };
 

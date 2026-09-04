@@ -715,3 +715,18 @@ export function cardById(id: string): Card {
   if (!c) throw new Error(`Unknown card ${id}`);
   return c;
 }
+
+/** Turn a generated card into a deck-shaped Card. Effects are pure data, so it serialises. */
+export function fromGenerated(g: { title: string; body: string; options: { label: string; description: string; levers: Record<string, number>; stocks: Record<string, number>; blocs: Record<string, number> }[] }, id: string, category: Card['category']): Card {
+  return {
+    id,
+    title: g.title,
+    body: g.body,
+    category,
+    options: g.options.map((o) => ({
+      label: o.label,
+      description: o.description,
+      effects: { levers: o.levers as Partial<Levers>, stocks: o.stocks as Effects['stocks'], blocs: o.blocs as Partial<Record<BlocId, number>> },
+    })),
+  };
+}

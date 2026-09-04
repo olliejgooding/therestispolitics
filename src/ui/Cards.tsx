@@ -9,7 +9,7 @@ const STOCK_LABEL: Record<string, string> = {
   housePriceToIncome: 'House prices', nhsQuality: 'NHS', educationQuality: 'Education', crime: 'Crime', happiness: 'Happiness',
   pressFreedom: 'Press freedom', judicialIndependence: 'Judiciary', cbIndependence: 'Bank independence', corruption: 'Corruption', trust: 'Trust',
   internationalStanding: 'Standing', energySecurity: 'Energy security', emissions: 'Emissions', partyUnity: 'Party unity', unrest: 'Unrest',
-  sterling: 'Sterling', humanCapital: 'Skills', infrastructure: 'Infrastructure', honeymoon: 'Honeymoon', fatigue: 'Fatigue', energyPrice: 'Energy price',
+  sterling: 'Sterling', humanCapital: 'Skills', infrastructure: 'Infrastructure stock', honeymoon: 'Honeymoon', fatigue: 'Fatigue', energyPrice: 'Energy price',
 };
 const LOWER_IS_GOOD = new Set(['inflation', 'inflationExpectations', 'debt', 'riskPremium', 'gini', 'housePriceToIncome', 'crime', 'corruption', 'emissions', 'unrest', 'fatigue', 'energyPrice']);
 
@@ -32,10 +32,21 @@ function effectChips(e: Effects) {
 
 export function CardView({ dealt, onChoose, onLearn }: { dealt: DealtCard; onChoose: (opt: number) => void; onLearn?: (id: string) => void }) {
   const c = dealt.card;
+  if (dealt.loading) {
+    return (
+      <div className="card loading">
+        <div className="cat muted">incoming</div>
+        <h2>A decision is on its way</h2>
+        <p>The departments are drafting a submission based on this quarter's numbers and your recent choices.</p>
+        <div className="shimmer" />
+      </div>
+    );
+  }
   return (
     <div className="card">
       <div className={`cat ${c.category}`}>
         {c.category}
+        {dealt.generated && <span className="gen-badge" title="Written this quarter from your situation">this quarter</span>}
         {c.learn && onLearn && (
           <span className="learn-links">
             {c.learn.map((id) => {

@@ -128,7 +128,7 @@ export function Metric({ def, history, onLearn }: { def: MetricDef; history: Sta
 
 const VIEW_KEY = 'trip-dashboard-view';
 
-export function Dashboard({ history, onLearn }: { history: State[]; onLearn?: (id: string) => void }) {
+export function Dashboard({ history, onLearn, only }: { history: State[]; onLearn?: (id: string) => void; only?: string[] }) {
   const [full, setFull] = useState<boolean>(() => {
     try {
       return localStorage.getItem(VIEW_KEY) !== 'simple';
@@ -143,10 +143,12 @@ export function Dashboard({ history, onLearn }: { history: State[]; onLearn?: (i
       /* ignore */
     }
   }, [full]);
-  const groups = METRIC_GROUPS.map((g) => ({ ...g, metrics: full ? g.metrics : g.metrics.filter((m) => m.core) })).filter((g) => g.metrics.length);
+  const groups = METRIC_GROUPS.filter((g) => !only || only.includes(g.title))
+    .map((g) => ({ ...g, metrics: full && !only ? g.metrics : g.metrics.filter((m) => m.core) }))
+    .filter((g) => g.metrics.length);
   return (
     <>
-      <div className="view-toggle">
+      <div className="view-toggle" style={only ? { display: 'none' } : undefined}>
         <span className="muted">Dashboard</span>
         <button className={!full ? 'active' : ''} onClick={() => setFull(false)} title="The 14 numbers that decide elections">Simple</button>
         <button className={full ? 'active' : ''} onClick={() => setFull(true)} title="Every stock the model tracks">Full</button>

@@ -100,8 +100,9 @@ export const HISTORY_SCHEMA = {
   },
 };
 
+import type { GenCardRequest } from './gencard';
 import type { PolicyRequest } from './policy';
-export type LlmRequest = PapersRequest | VoxPopRequest | HistoryRequest | PolicyRequest;
+export type LlmRequest = PapersRequest | VoxPopRequest | HistoryRequest | PolicyRequest | GenCardRequest;
 
 // ------------------------------------------------------------------ validation (belt and braces on top of structured outputs)
 const str = (v: unknown, max: number) => (typeof v === 'string' && v.length > 0 ? v.slice(0, max) : null);

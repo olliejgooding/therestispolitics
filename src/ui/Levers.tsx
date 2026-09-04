@@ -7,7 +7,7 @@ const GROUPS: { id: 'tax' | 'spend' | 'policy'; title: string }[] = [
   { id: 'policy', title: 'Policy' },
 ];
 
-export function LeverPanel({ state, onChange, onRule }: { state: State; onChange: (patch: Partial<Levers>) => void; onRule: (r: FiscalRule) => void }) {
+export function LeverPanel({ state, onChange, onRule, locked, nextBudget }: { state: State; onChange: (patch: Partial<Levers>) => void; onRule: (r: FiscalRule) => void; locked: boolean; nextBudget: string }) {
   const L = state.levers;
   const P = state.prevLevers;
   const rev = structuralRevenue(state);
@@ -15,6 +15,12 @@ export function LeverPanel({ state, onChange, onRule }: { state: State; onChange
   const structuralDeficit = spend - rev;
   return (
     <>
+      {locked && (
+        <div className="panel locked-note">
+          <b>The dials are locked until the Budget in {nextBudget}.</b>
+          <div className="muted" style={{ fontSize: 12 }}>You can still see everything, and events or a policy proposal can move a setting in the meantime.</div>
+        </div>
+      )}
       <div className="panel">
         <h3>Budget at a glance</h3>
         <div className="fiscal-summary">
@@ -29,7 +35,7 @@ export function LeverPanel({ state, onChange, onRule }: { state: State; onChange
         </div>
         <div className="rule-row">
           <label title="The Chancellor's self-imposed rule. Judged by the OBR from 2029; meeting it lowers gilt yields, breaching it raises them. Changing it mid-parliament costs credibility.">Fiscal rule</label>
-          <select value={state.fiscalRule} onChange={(e) => onRule(e.target.value as FiscalRule)}>
+          <select value={state.fiscalRule} disabled={locked} onChange={(e) => onRule(e.target.value as FiscalRule)}>
             {(Object.keys(FISCAL_RULES) as FiscalRule[]).map((r) => (
               <option key={r} value={r}>{FISCAL_RULES[r].label}</option>
             ))}
@@ -46,7 +52,7 @@ export function LeverPanel({ state, onChange, onRule }: { state: State; onChange
         </div>
       </div>
       {GROUPS.map((g) => (
-        <div className="panel" key={g.id}>
+        <div className={`panel ${locked ? 'locked' : ''}`} key={g.id}>
           <h3>{g.title}</h3>
           {(Object.keys(LEVER_META) as (keyof Levers)[])
             .filter((k) => LEVER_META[k].group === g.id)
@@ -63,6 +69,7 @@ export function LeverPanel({ state, onChange, onRule }: { state: State; onChange
                   </div>
                   <input
                     type="range"
+                    disabled={locked}
                     min={m.min}
                     max={m.max}
                     step={m.step}

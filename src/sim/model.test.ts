@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Game } from './game';
+import { Game, isBudgetQuarter } from './game';
+import { activeAlerts } from './alerts';
+import { validateGeneratedCard } from '../llm/gencard';
 import { initialState } from './initial';
 import { stepEconomy } from './model';
 import { blocTarget, issueScores } from './politics';
@@ -71,6 +73,7 @@ describe('parliament and fiscal rules', () => {
     const g = new Game(5);
     g.state.partyUnity = 35;
     g.state.majority = 20;
+    g.state.quarter = 4;
     g.setLevers({ incomeTax: 30, nhs: 11, welfare: 14 });
     for (const p of g.pending) g.choose(p.card.id, 0);
     g.endTurn();
@@ -81,6 +84,7 @@ describe('parliament and fiscal rules', () => {
   it('a modest budget with a united party passes without drama', () => {
     const g = new Game(5);
     g.state.partyUnity = 75;
+    g.state.quarter = 4;
     g.setLevers({ nhs: 8.2 });
     for (const p of g.pending) g.choose(p.card.id, 0);
     g.endTurn();
@@ -109,5 +113,60 @@ describe('save migration', () => {
     expect(g2.state.majority).toBe(160);
     for (const p of g2.pending) g2.choose(p.card.id, 0);
     expect(() => g2.endTurn()).not.toThrow();
+  });
+});
+
+describe('budget cadence, alerts and generated cards', () => {
+  it('levers only move in a budget quarter', () => {
+    const g = new Game(2);
+    expect(isBudgetQuarter(g.state)).toBe(false);
+    g.setLevers({ nhs: 9 });
+    expect(g.state.levers.nhs).toBe(8);
+    g.state.quarter = 4;
+    g.setLevers({ nhs: 9 });
+    expect(g.state.levers.nhs).toBe(9);
+  });
+  it('alerts fire on thresholds and steer the deal toward matching cards', () => {
+    const g = new Game(2);
+    g.state.nhsQuality = 40;
+    g.state.unrest = 65;
+    const ids = activeAlerts(g.state).map((a) => a.def.id);
+    expect(ids).toContain('nhs');
+    expect(ids).toContain('unrest');
+  });
+  it('a generated card slot blocks the turn until filled, then falls back to the deck on failure', () => {
+    const g = new Game(2);
+    g.wantGenerated = true;
+    (g as unknown as { deal: () => void }).deal();
+    expect(g.pending.some((p) => p.loading)).toBe(true);
+    for (const p of g.pending) g.choose(p.card.id, 0);
+    expect(g.canEndTurn).toBe(false);
+    g.setGeneratedCard(null);
+    expect(g.pending.some((p) => p.loading)).toBe(false);
+    for (const p of g.pending) g.choose(p.card.id, 0);
+    expect(g.canEndTurn).toBe(true);
+  });
+  it('a generated card is clamped, applied like a deck card, and survives a save round-trip', () => {
+    const g = new Game(2);
+    g.wantGenerated = true;
+    (g as unknown as { deal: () => void }).deal();
+    const gen = validateGeneratedCard({
+      title: 'Council goes bust',
+      body: 'Birmingham again.',
+      options: [
+        { label: 'Bail it out', description: 'd', levers: { welfare: 5 }, stocks: { debt: 500, trust: 1 }, blocs: { working: 30 } },
+        { label: 'Commissioners', description: 'd', levers: {}, stocks: { trust: -2 }, blocs: { publicSector: -3 } },
+      ],
+    });
+    expect(gen).not.toBeNull();
+    expect(gen!.options[0].levers.welfare).toBeCloseTo(0.6, 5);
+    expect(gen!.options[0].stocks.debt).toBe(24);
+    g.setGeneratedCard(gen);
+    const g2 = Game.fromJSON(JSON.parse(JSON.stringify(g.toJSON())));
+    expect(g2.pending.some((p) => p.card.title === 'Council goes bust')).toBe(true);
+    for (const p of g2.pending) g2.choose(p.card.id, 0);
+    const before = g2.state.levers.welfare;
+    g2.endTurn();
+    expect(g2.state.levers.welfare).toBeCloseTo(before + 0.6, 5);
   });
 });

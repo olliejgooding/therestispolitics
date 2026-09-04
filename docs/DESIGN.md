@@ -315,12 +315,28 @@ Tax: income tax (basic effective), progressivity (higher-rate/wealth), corporati
 Spend (% GDP): NHS, education, welfare, infrastructure, defence, policing, green investment, integration.
 Policy: migration openness (0–100), planning liberalisation (0–100).
 
+## 5a. Alerts and the Budget cadence
+
+Alerts are threshold tests on key stocks (`src/sim/alerts.ts`), each with a severity, an
+encyclopedia link, a theme and a list of deck cards that address it. They are the game's way of
+saying "this number is now a decision": matching deck cards get 4× draw weight and the generated
+card of the quarter takes the alert's theme.
+
+The dials only move at the Budget: Q4 every year, plus the quarter after an election win.
+Between Budgets `setLevers` is a no-op; cards and policy proposals can still move settings.
+
 ## 6. Event cards
 
 Cards are dealt by condition (e.g. `inflation > 6` deals *Cost of Living*, `riskPremium > 2.5`
 deals *Gilt Strike*). Each option changes flows or stocks and has bloc-specific reactions.
 Some cards are the *only* way to move institutional stocks (press, judiciary, BoE), because those
 are discrete political acts.
+
+Each hand is two cards: one from the deck (alert-weighted) and, when the narrator is available,
+one generated from the situation (`src/llm/gencard.ts`): the engine chooses subject and
+category, the model writes title, body and two or three options with effects, which are clamped
+to 60% of the policy bounds and trimmed to the six largest. Generated cards are data-only and
+serialise into the save; a failed or slow generation falls back to a second deck card.
 
 ## 7. Win / lose
 
@@ -338,7 +354,9 @@ decomposition tools.
 v0.3: realistic 2026 calibration with a populist opposition and the fairness issue, guided
 tutorial, Simple/Full dashboard, Cloudflare Worker with the LLM narration layer (papers, vox
 pops, history book).
-v0.4 (this build): free-text policy through the Treasury (bounded LLM interpreter), fiscal rules
-judged by the OBR, and a Commons with a majority, rebels and votes. See ROADMAP.md for tiers. Later: a real Parliament with rebels and votes, devolved nations, trade
+v0.4: free-text policy through the Treasury (bounded LLM interpreter), fiscal rules judged by the
+OBR, and a Commons with a majority, rebels and votes.
+v0.5 (this build): three screens (Decisions / Budget / Country), threshold alerts that steer the
+deal, generated cards, annual Budget cadence. See ROADMAP.md for tiers. Later: a real Parliament with rebels and votes, devolved nations, trade
 deals, a Python calibration notebook against ONS/OBR series, guided tutorials per scenario, and
 multiplayer "cabinet" mode.

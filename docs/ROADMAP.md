@@ -101,7 +101,9 @@ demographics and trade systems exist.
 
 ## 4. Status and the next three things
 
-Done (v0.4): fiscal rules, Parliament, free-text policy. A lesson from building them: the
+Done (v0.5): fiscal rules, Parliament, free-text policy, generated cards, alerts, three-screen
+layout, annual Budget cadence. The Budget cadence is itself a complexity control: fourteen dials
+touched once a year is a decision; fourteen dials touched every quarter is a chore. A lesson from building them: the
 bisect harness (`git stash` a file, rerun 60 seeds) found that the OBR breach card, not the rule
 itself, was the balance drag. Cards that fire on a state condition are the easiest way to
 accidentally add a tax on the player; give them a cooldown of 12 and a cheap option.

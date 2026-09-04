@@ -11,7 +11,7 @@ const STOCK_LABEL: Record<string, string> = {
   housePriceToIncome: 'House prices', nhsQuality: 'NHS', educationQuality: 'Education', crime: 'Crime', happiness: 'Happiness',
   pressFreedom: 'Press freedom', judicialIndependence: 'Judiciary', cbIndependence: 'Bank independence', corruption: 'Corruption', trust: 'Trust',
   internationalStanding: 'Standing', energySecurity: 'Energy security', emissions: 'Emissions', partyUnity: 'Party unity', unrest: 'Unrest',
-  humanCapital: 'Skills', infrastructure: 'Infrastructure',
+  humanCapital: 'Skills', infrastructure: 'Infrastructure stock',
 };
 const LOWER_IS_GOOD = new Set(['inflation', 'inflationExpectations', 'debt', 'riskPremium', 'gini', 'housePriceToIncome', 'crime', 'corruption', 'emissions', 'unrest']);
 

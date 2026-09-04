@@ -15,7 +15,7 @@ export function Coach({
   onNext: () => void;
   onSkip: () => void;
   onLearn: (id: string) => void;
-  onTab: (tab: 'decisions' | 'people' | 'charts' | 'systems' | 'learn') => void;
+  onTab: (tab: 'decisions' | 'budget' | 'country' | 'systems' | 'learn') => void;
 }) {
   const st = TUTORIAL[step];
   const ready = st ? st.when(game.state, game) : false;

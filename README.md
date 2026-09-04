@@ -27,6 +27,11 @@ OpenAI-compatible Responses API (Azure). Four features use it:
 - **Free-text policy**: describe any policy; the Treasury maps it to bounded lever, stock and
   bloc changes (`src/llm/bounds.ts`), shows you the mapping and costing, and you choose whether
   to enact it. One per quarter. Injection attempts come back as `feasible: false` with zeros.
+- **Generated decisions**: one card per quarter is written from your situation. The engine picks
+  the subject (an active alert first, then the consequences of your last Budget, then a fresh
+  theme) and the category; the model writes the dilemma and proposes effects, which are clamped
+  to 60% of the policy bounds and trimmed to the six that matter most. If the model is slow or
+  down, the deck fills the slot.
 
 Every response is validated against a JSON schema server-side and again client-side, requests
 are size-capped, upstream errors retry once, identical requests are cached by content hash, and
@@ -73,6 +78,18 @@ waits for the right moment (first headlines, the NHS drifting, election year) an
 relevant panel with a link to the encyclopedia. Every `?` in the UI opens the encyclopedia entry for that metric, card or loop. The **Learn** tab
 also has a *Why is it like this?* tool that decomposes happiness, each bloc's approval and the
 opposition's appeal into their contributing terms. Scenarios each state the lesson they teach.
+
+## Screens, alerts and the Budget
+
+- **Decisions**: alerts at the top, the news and the papers, this quarter's cards, the policy box.
+- **Budget**: the dials. They unlock in the fourth quarter of each year and in the quarter after an
+  election win; in between they hold, and only events or your own policy proposals move them.
+- **Country**: every metric (Simple or Full), the opposition and the Commons, the population mosaic,
+  and the charts.
+- **Alerts** (`src/sim/alerts.ts`) fire when a key number leaves its band (inflation above 4, NHS
+  below 45, unrest above 50, and so on). They show in the top bar and on the Decisions screen with
+  a link to the entry, and they steer what gets dealt: deck cards that address an active alert are
+  drawn four times as often, and the generated card takes the alert as its subject.
 
 ## Fiscal rules and Parliament
 

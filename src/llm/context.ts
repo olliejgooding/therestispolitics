@@ -6,6 +6,8 @@ import type { Game, TurnLog } from '../sim/game';
 import { blocContributions } from '../sim/politics';
 import { BLOC_INFO, LEVER_META, type BlocId, type Levers, type State } from '../sim/types';
 import type { PolicyRequest } from './policy';
+import type { GenCardRequest } from './gencard';
+import { activeAlerts } from '../sim/alerts';
 import { ALL_METRICS } from '../ui/Metrics';
 import type { HistoryRequest, PapersRequest, VoxPopRequest } from './schemas';
 
@@ -119,5 +121,69 @@ export function policyContext(game: Game, text: string): PolicyRequest {
     situation,
     levers: Object.fromEntries(keys.map((k) => [k, s.levers[k]])),
     leverMeta: keys.map((k) => ({ key: k, label: LEVER_META[k].label, unit: LEVER_META[k].unit, min: LEVER_META[k].min, max: LEVER_META[k].max })),
+  };
+}
+
+const THEMES: { theme: string; category: GenCardRequest['category'] }[] = [
+  { theme: 'a local council on the brink of bankruptcy', category: 'society' },
+  { theme: 'a strike or pay dispute in a public service', category: 'society' },
+  { theme: 'a corporate collapse, takeover or foreign investment decision', category: 'economy' },
+  { theme: 'a diplomatic incident or trade dispute with an ally', category: 'politics' },
+  { theme: 'a technology or AI regulation question', category: 'economy' },
+  { theme: 'a scandal or standards question about a minister', category: 'institutions' },
+  { theme: 'an environmental disaster or planning row', category: 'environment' },
+  { theme: 'a demand from a devolved government or an English region', category: 'politics' },
+  { theme: 'a public health question: obesity, drugs, mental health, social care', category: 'society' },
+  { theme: 'a transport, energy or infrastructure project going wrong or over budget', category: 'economy' },
+  { theme: 'universities, schools or apprenticeships', category: 'society' },
+  { theme: 'a question of civil liberties, protest or policing powers', category: 'institutions' },
+  { theme: 'the Bank of England, interest rates and mortgages', category: 'economy' },
+  { theme: 'the state pension, care costs or the triple lock', category: 'society' },
+  { theme: 'a media or social media controversy', category: 'institutions' },
+];
+
+/** Decide what this quarter's generated card should be about: an alert first, then a recent decision, then a theme. */
+export function cardContext(game: Game): GenCardRequest {
+  const s = game.state;
+  const alerts = activeAlerts(s);
+  const recentTitles = game.log.slice(-6).flatMap((l) => l.decisions.map((d) => d.card)).concat(game.pending.map((p) => p.card.title));
+  const recentDecisions = game.log.slice(-4).flatMap((l) => l.decisions.map((d) => `${l.year} Q${l.quarter}: ${d.card} — ${d.option}`));
+  const leverMoves: string[] = [];
+  const first = game.history[Math.max(0, game.history.length - 5)];
+  for (const k of Object.keys(s.levers) as (keyof Levers)[]) {
+    const d = s.levers[k] - first.levers[k];
+    if (Math.abs(d) > 0.05) leverMoves.push(`${LEVER_META[k].label} ${d > 0 ? 'up' : 'down'} ${Math.abs(d).toFixed(1)}`);
+  }
+  let theme: string;
+  let prompt: string;
+  let category: GenCardRequest['category'];
+  const pick = alerts[(s.turn + alerts.length) % Math.max(1, alerts.length)];
+  if (alerts.length && s.turn % 3 !== 2) {
+    theme = pick.def.theme;
+    prompt = `Alert: ${pick.def.label} (${pick.detail}). The public and the press have noticed.`;
+    category = pick.severity === 'danger' ? 'crisis' : 'society';
+  } else if (leverMoves.length && s.turn % 2 === 0) {
+    theme = 'the consequences of the government\'s recent budget choices';
+    prompt = `In the last year the government moved: ${leverMoves.join('; ')}. Someone affected is now pushing back or asking for more.`;
+    category = 'economy';
+  } else {
+    const th = THEMES[(s.turn * 7 + s.rngSeed) % THEMES.length];
+    theme = th.theme;
+    prompt = 'Ordinary politics: something has come up that was not on the grid.';
+    category = th.category;
+  }
+  const situation = ALL_METRICS.filter((m) => WATCH.includes(m.key)).map((m) => `${m.label}: ${m.fmt(m.get(s))}`);
+  return {
+    kind: 'card',
+    turn: s.turn,
+    date: `${s.year} Q${s.quarter}`,
+    scenario: game.scenario.name,
+    theme,
+    prompt,
+    category,
+    situation,
+    recentDecisions: recentDecisions.slice(-6),
+    recentTitles: [...new Set(recentTitles)].slice(-12),
+    levers: Object.fromEntries((Object.keys(s.levers) as (keyof Levers)[]).map((k) => [k, s.levers[k]])),
   };
 }

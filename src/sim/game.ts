@@ -1,7 +1,9 @@
 /**
  * Game orchestrator: turn loop, card dealing, elections, win/lose.
  */
-import { applyEffects, CARDS, cardById, type Card } from './cards';
+import { applyEffects, CARDS, cardById, fromGenerated, type Card } from './cards';
+import { activeAlerts } from './alerts';
+import type { GeneratedCard } from '../llm/gencard';
 import { initialState } from './initial';
 import { stepEconomy } from './model';
 import { commonsVote, institutionalDamage, isElectionTurn, leverFriction, runElection, stepPolitics } from './politics';
@@ -16,6 +18,28 @@ import type { ElectionResult, GameStatus, Headline, Levers, State } from './type
 export interface DealtCard {
   card: Card;
   choice: number | null;
+  /** a generated card that has not arrived yet */
+  loading?: boolean;
+  generated?: boolean;
+}
+
+/** The dials can only be moved at the annual Budget (Q4) — and in the first quarter of a fresh mandate. */
+export function isBudgetQuarter(s: State): boolean {
+  return s.quarter === 4 || (s.quarter === 3 && [2029, 2034, 2039, 2044].includes(s.year));
+}
+
+export function nextBudget(s: State): string {
+  let y = s.year;
+  let q = s.quarter;
+  for (let i = 0; i < 8; i++) {
+    if (isBudgetQuarter({ ...s, year: y, quarter: q })) return `${y} Q${q}`;
+    q += 1;
+    if (q > 4) {
+      q = 1;
+      y += 1;
+    }
+  }
+  return `${y} Q${q}`;
 }
 
 export interface TurnLog {
@@ -62,9 +86,27 @@ export class Game {
     this.deal();
   }
 
+  /** Set at construction by the UI: should each hand include a generated card? */
+  wantGenerated = false;
+  generatedCategory: Card['category'] = 'society';
+
   // ------------------------------------------------------------ player input
   setLevers(patch: Partial<Levers>) {
+    if (!isBudgetQuarter(this.state) && Object.keys(patch).length) return;
     this.state = { ...this.state, levers: { ...this.state.levers, ...patch } };
+  }
+
+  /** The generated card for this hand has arrived (or failed: null → fall back to the deck). */
+  setGeneratedCard(g: GeneratedCard | null) {
+    const idx = this.pending.findIndex((p) => p.loading);
+    if (idx < 0) return;
+    if (g) {
+      this.pending[idx] = { card: fromGenerated(g, `gen-${this.state.turn}-${this.state.rngSeed % 1000}`, this.generatedCategory), choice: null, generated: true };
+    } else {
+      const fallback = this.drawFromDeck(this.pending.map((p) => p.card.id));
+      if (fallback) this.pending[idx] = { card: fallback, choice: null };
+      else this.pending.splice(idx, 1);
+    }
   }
 
   /** Changing the rule mid-parliament costs credibility unless you are adopting one for the first time. */
@@ -108,7 +150,7 @@ export class Game {
   }
 
   get canEndTurn(): boolean {
-    return this.status.kind === 'playing' && this.pending.every((p) => p.choice !== null);
+    return this.status.kind === 'playing' && this.pending.every((p) => p.choice !== null && !p.loading);
   }
 
   // ------------------------------------------------------------ turn loop
@@ -123,7 +165,7 @@ export class Game {
       const opt = p.card.options[p.choice!];
       s = applyEffects(s, opt.effects);
       decisions.push({ card: p.card.title, option: opt.label });
-      this.lastDealt[p.card.id] = s.turn;
+      if (!p.generated) this.lastDealt[p.card.id] = s.turn;
       if (p.card.once) this.used.add(p.card.id);
     }
 
@@ -209,27 +251,41 @@ export class Game {
   }
 
   // ------------------------------------------------------------ cards
-  private deal() {
+  private eligibleCards(exclude: string[]): Card[] {
     const s = this.state;
-    const eligible = CARDS.filter((c) => {
-      if (this.used.has(c.id)) return false;
+    return CARDS.filter((c) => {
+      if (this.used.has(c.id) || exclude.includes(c.id)) return false;
       const last = this.lastDealt[c.id];
       if (last !== undefined && s.turn - last < (c.cooldown ?? 12)) return false;
       return c.condition ? c.condition(s) : true;
     });
+  }
+
+  /** Weighted draw; cards that address an active alert are strongly preferred, so numbers going wrong produce decisions. */
+  private drawFromDeck(exclude: string[]): Card | null {
+    const pool = this.eligibleCards(exclude);
+    if (!pool.length) return null;
+    const alertCards = new Set(activeAlerts(this.state).flatMap((a) => a.def.cards));
+    const weight = (c: Card) => (c.weight ?? 1) * (alertCards.has(c.id) ? 4 : 1);
+    const total = pool.reduce((a, c) => a + weight(c), 0);
+    let r = this.rng.next() * total;
+    for (const c of pool) {
+      r -= weight(c);
+      if (r <= 0) return c;
+    }
+    return pool[pool.length - 1];
+  }
+
+  private deal() {
+    const s = this.state;
     const dealt: DealtCard[] = [];
     for (const f of this.scenario.scripted ?? []) if (f.turn === s.turn && !this.used.has(f.card)) dealt.push({ card: cardById(f.card), choice: null });
-    const pool = eligible.filter((c) => !dealt.some((d) => d.card.id === c.id));
-    const n = Math.min(dealt.length ? 1 : 2, pool.length);
-    for (let i = 0; i < n; i++) {
-      const total = pool.reduce((a, c) => a + (c.weight ?? 1), 0);
-      let r = this.rng.next() * total;
-      let idx = 0;
-      for (; idx < pool.length; idx++) {
-        r -= pool[idx].weight ?? 1;
-        if (r <= 0) break;
-      }
-      const c = pool.splice(Math.min(idx, pool.length - 1), 1)[0];
+    const handSize = 2;
+    // one slot for a generated card when the narrator is available; the deck fills the rest
+    if (this.wantGenerated && dealt.length < handSize) dealt.push({ card: cardById('quiet-quarter'), choice: null, loading: true });
+    while (dealt.length < handSize) {
+      const c = this.drawFromDeck(dealt.map((d) => d.card.id));
+      if (!c) break;
       dealt.push({ card: c, choice: null });
     }
     if (dealt.length === 0) dealt.push({ card: cardById('quiet-quarter'), choice: null });
@@ -244,7 +300,7 @@ export class Game {
       log: this.log,
       elections: this.elections,
       status: this.status,
-      pending: this.pending.map((p) => ({ id: p.card.id, choice: p.choice })),
+      pending: this.pending.map((p) => (p.generated ? { id: p.card.id, choice: p.choice, generated: true, card: p.card } : { id: p.card.id, choice: p.choice })),
       lastDealt: this.lastDealt,
       used: [...this.used],
       rng: this.rng.seed,
@@ -264,7 +320,7 @@ export class Game {
     g.log = j.log;
     g.elections = j.elections;
     g.status = j.status;
-    g.pending = j.pending.map((p) => ({ card: cardById(p.id), choice: p.choice }));
+    g.pending = j.pending.map((p) => (p.generated && p.card ? { card: p.card, choice: p.choice, generated: true } : { card: cardById(p.id), choice: p.choice }));
     g.lastDealt = j.lastDealt;
     g.used = new Set(j.used);
     g.rng = Rng.fromState(j.rng);
